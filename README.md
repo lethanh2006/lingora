@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lingora
 
-## Getting Started
+Base kỹ thuật cho nền tảng học ngôn ngữ, xây dựng bằng Next.js App Router và Firebase. Repo này chỉ chứa infrastructure và các tính năng dùng chung; các module nghiệp vụ như courses, lessons, vocabulary và quizzes sẽ được thêm sau.
 
-First, run the development server:
+## Stack
+
+- Node.js 24 LTS
+- Next.js 16 + React 19 + TypeScript strict
+- Tailwind CSS 4 + shadcn/ui foundation
+- Firebase Authentication, Firestore, Storage và Admin SDK
+- Zod 4 cho dữ liệu không tin cậy
+
+## Tính năng base
+
+- Đăng ký, đăng nhập email/password và Google
+- Khôi phục mật khẩu qua email
+- Firebase ID token đổi thành HttpOnly session cookie phía server
+- User profile và hai role `user` / `admin`
+- Route Dashboard và Admin được kiểm tra quyền tại server
+- Firestore/Storage security rules và cấu hình Emulator Suite
+- Error, loading và not-found UI
+- Quality gates: typecheck, lint, build
+
+## Cài đặt
+
+Yêu cầu Node.js 24. Nếu dùng nvm:
+
+```bash
+nvm use
+npm install
+```
+
+Tạo Firebase project, sau đó bật:
+
+1. Authentication → Email/Password và Google providers.
+2. Firestore Database.
+3. Storage.
+4. Project Settings → Service accounts → Generate new private key.
+
+Sao chép file env và điền cấu hình Firebase:
+
+```bash
+cp .env.example .env.local
+```
+
+`NEXT_PUBLIC_*` là cấu hình Firebase Web SDK và không phải secret. Các biến `FIREBASE_ADMIN_*` chỉ được dùng phía server; không được commit private key hoặc service-account JSON.
+
+Chạy local:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mở http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Firebase rules và emulator
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Cài Firebase CLI nếu máy chưa có, đăng nhập rồi chọn project:
 
-## Learn More
+```bash
+npm install --global firebase-tools
+firebase login
+firebase use --add
+```
 
-To learn more about Next.js, take a look at the following resources:
+Chạy emulator:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+firebase emulators:start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Deploy rules/indexes:
 
-## Deploy on Vercel
+```bash
+firebase deploy --only firestore:rules,firestore:indexes,storage
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Base hiện khởi tạo tài khoản với role `user`. Để cấp admin lần đầu, chỉnh field `role` của document `users/{uid}` thành `admin` trong Firebase Console. Sau đó chỉ admin mới có quyền đọc/ghi rộng qua Firestore Client SDK; Admin SDK phía server vẫn phải kiểm tra quyền ở từng endpoint.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Quality gates
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
+
+Hoặc chạy toàn bộ:
+
+```bash
+npm run check
+```
+
+## Cấu trúc chính
+
+```text
+src/
+├── app/                 routes, layouts, route handlers
+├── components/          ui primitives và shared layout
+├── features/            code theo feature (auth, user, ...)
+└── lib/                 Firebase, session, env và utilities
+```
+
+Quy tắc dependency: `app → features → lib`; UI primitives không truy cập Firebase và Firebase Admin không bao giờ được import vào Client Component.
+
+## Tạo project mới từ base
+
+Ưu tiên dùng repository này làm GitHub Template. Nếu clone thủ công, tạo repository/git history mới trước khi phát triển business modules.
