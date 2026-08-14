@@ -75,6 +75,24 @@ Chạy bộ kiểm thử Firestore Rules (cần Java 21+):
 npm run test:rules
 ```
 
+Kiểm tra seed idempotent bằng Firestore Emulator:
+
+```bash
+npm run test:seed
+```
+
+Seed catalog pilot vào emulator đang chạy:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm run seed:pilot
+```
+
+Khi seed project thật, script yêu cầu xác nhận đúng project để tránh ghi nhầm:
+
+```bash
+npm run seed:pilot -- --confirm-project="$FIREBASE_ADMIN_PROJECT_ID"
+```
+
 Deploy rules/indexes:
 
 ```bash
