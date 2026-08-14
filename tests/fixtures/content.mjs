@@ -192,3 +192,59 @@ export const activityFixtures = [
     },
   },
 ];
+
+export const publicActivityFixtures = activityFixtures.map((activity) => {
+  const publicActivity = structuredClone(activity);
+  delete publicActivity.scoringDefinition;
+  delete publicActivity.transcript;
+  return publicActivity;
+});
+
+export const sourceAttributionFixture = {
+  id: "source-1",
+  title: "Lingora reference content",
+  publisher: "Lingora",
+  canonicalUrl: "https://example.com/sources/lingora-reference",
+  licenseCode: "CC-BY-4.0",
+  licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+  attributionText: "Lingora reference content, CC BY 4.0.",
+};
+
+export const publishedLessonRevisionFixture = {
+  schemaVersion: 1,
+  id: "lessonRevision1",
+  lessonId: "hello-and-goodbye",
+  courseId: "english-a1-foundations",
+  unitId: "greetings",
+  programId: "general-english-cefr",
+  languageId: "en",
+  revisionNumber: 1,
+  title: "Hello and goodbye",
+  summary: "Học cách chào hỏi và tạm biệt cơ bản.",
+  objectives: ["Chọn được lời chào phù hợp với ngữ cảnh."],
+  estimatedMinutes: 10,
+  activities: publicActivityFixtures,
+  vocabulary: [
+    {
+      lexemeId: "lexeme-hello",
+      term: "hello",
+      meaningVi: "xin chào",
+      pronunciation: "/həˈləʊ/",
+      example: "Hello, Mai!",
+      mediaRefs: [],
+    },
+  ],
+  mediaManifest: [
+    {
+      id: "audio-hello",
+      storagePath: "media/content/hello-and-goodbye/1/hello.mp3",
+      contentType: "audio/mpeg",
+      sizeBytes: 12_345,
+      checksum: "a".repeat(64),
+    },
+  ],
+  sourceAttributions: [sourceAttributionFixture],
+  checksum: "b".repeat(64),
+  publishedAt: timestamp,
+  publishedBy: "admin-user-1",
+};

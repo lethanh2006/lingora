@@ -413,6 +413,79 @@ export const lessonDraftSchema = z
   })
   .strict();
 
+const publishedVocabularySchema = z
+  .object({
+    lexemeId: documentIdSchema,
+    term: shortTextSchema,
+    meaningVi: shortTextSchema,
+    pronunciation: z.string().trim().min(1).max(200).nullable(),
+    example: z.string().trim().min(1).max(1_000).nullable(),
+    mediaRefs: z.array(documentIdSchema).max(8),
+  })
+  .strict();
+
+const mediaManifestEntrySchema = z
+  .object({
+    id: documentIdSchema,
+    storagePath: z.string().trim().min(1).max(1_024),
+    contentType: z.string().regex(/^(audio|image)\/[a-z0-9.+-]+$/),
+    sizeBytes: z.number().int().positive().max(50 * 1024 * 1024),
+    checksum: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
+
+export const sourceAttributionSchema = z
+  .object({
+    id: documentIdSchema,
+    title: shortTextSchema,
+    publisher: shortTextSchema,
+    canonicalUrl: z.url(),
+    licenseCode: shortTextSchema,
+    licenseUrl: z.url(),
+    attributionText: z.string().trim().min(1).max(2_000),
+  })
+  .strict();
+
+export const publishedLessonRevisionSchema = z
+  .object({
+    ...schemaVersionShape,
+    id: documentIdSchema,
+    lessonId: stableIdSchema,
+    courseId: stableIdSchema,
+    unitId: stableIdSchema,
+    programId: stableIdSchema,
+    languageId: languageIdSchema,
+    revisionNumber: z.number().int().positive(),
+    title: shortTextSchema,
+    summary: descriptionSchema,
+    objectives: z.array(z.string().trim().min(1).max(500)).min(1).max(20),
+    estimatedMinutes: z.number().int().positive().max(1_440),
+    activities: z.array(publicActivitySchema).min(1).max(100),
+    vocabulary: z.array(publishedVocabularySchema).max(200),
+    mediaManifest: z.array(mediaManifestEntrySchema).max(200),
+    sourceAttributions: z.array(sourceAttributionSchema).min(1).max(100),
+    checksum: z.string().regex(/^[a-f0-9]{64}$/),
+    publishedAt: firestoreTimestampSchema,
+    publishedBy: documentIdSchema,
+  })
+  .strict()
+  .superRefine((revision, context) => {
+    addDuplicateIdIssue(revision.activities, "activities", context);
+    addDuplicateIdIssue(revision.mediaManifest, "mediaManifest", context);
+    addDuplicateIdIssue(revision.sourceAttributions, "sourceAttributions", context);
+
+    if (
+      new Set(revision.vocabulary.map(({ lexemeId }) => lexemeId)).size !==
+      revision.vocabulary.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "vocabulary không được có lexemeId trùng nhau",
+        path: ["vocabulary"],
+      });
+    }
+  });
+
 export const publicLanguageDtoSchema = z
   .object({
     ...schemaVersionShape,
@@ -461,3 +534,5 @@ export type UnitDraft = z.infer<typeof unitDraftSchema>;
 export type LessonDraft = z.infer<typeof lessonDraftSchema>;
 export type ActivityDraft = z.infer<typeof activityDraftSchema>;
 export type PublicActivityDto = z.infer<typeof publicActivitySchema>;
+export type SourceAttribution = z.infer<typeof sourceAttributionSchema>;
+export type PublishedLessonRevision = z.infer<typeof publishedLessonRevisionSchema>;

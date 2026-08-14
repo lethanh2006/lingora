@@ -7,6 +7,7 @@ import {
   courseSchema,
   languageSchema,
   lessonDraftSchema,
+  publishedLessonRevisionSchema,
   programSchema,
   publicActivitySchema,
   publicProgramDtoSchema,
@@ -18,6 +19,7 @@ import {
   courseRevisionFixture,
   languageFixture,
   lessonDraftFixture,
+  publishedLessonRevisionFixture,
   programFixture,
   unitDraftFixture,
 } from "./fixtures/content.mjs";
@@ -132,4 +134,42 @@ test("public DTO schemas reject persistence metadata and scoring secrets", () =>
 
   assert.equal(publicActivitySchema.safeParse(publicChoice).success, true);
   assert.equal(publicActivitySchema.safeParse(publicListening).success, true);
+});
+
+test("published lesson schema accepts a learner-safe immutable snapshot", () => {
+  const parsed = publishedLessonRevisionSchema.parse(publishedLessonRevisionFixture);
+
+  assert.equal(parsed.lessonId, lessonDraftFixture.id);
+  assert.equal(parsed.activities.length, activityFixtures.length);
+  assert.equal(parsed.sourceAttributions[0]?.id, "source-1");
+});
+
+test("published lesson schema rejects secrets, duplicate IDs, and invalid checksums", () => {
+  const privateChoice = activityFixtures.find(({ type }) => type === "single_choice");
+  assert.ok(privateChoice);
+
+  assert.equal(
+    publishedLessonRevisionSchema.safeParse({
+      ...publishedLessonRevisionFixture,
+      activities: [privateChoice],
+    }).success,
+    false,
+  );
+  assert.equal(
+    publishedLessonRevisionSchema.safeParse({
+      ...publishedLessonRevisionFixture,
+      activities: [
+        publishedLessonRevisionFixture.activities[0],
+        publishedLessonRevisionFixture.activities[0],
+      ],
+    }).success,
+    false,
+  );
+  assert.equal(
+    publishedLessonRevisionSchema.safeParse({
+      ...publishedLessonRevisionFixture,
+      checksum: "not-a-sha256-checksum",
+    }).success,
+    false,
+  );
 });
