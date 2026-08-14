@@ -25,7 +25,9 @@ import {
 } from "./fixtures/content.mjs";
 
 test("domain schemas accept valid catalog fixtures", () => {
-  assert.equal(languageSchema.parse(languageFixture).id, "en");
+  const language = languageSchema.parse(languageFixture);
+  assert.equal(language.id, "en");
+  assert.equal(language.createdAt, languageFixture.createdAt);
   assert.equal(programSchema.parse(programFixture).languageId, "en");
   assert.equal(courseSchema.parse(courseFixture).levelId, "a1");
   assert.equal(courseRevisionSchema.parse(courseRevisionFixture).revisionNumber, 1);

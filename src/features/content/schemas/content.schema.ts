@@ -14,10 +14,24 @@ export const documentIdSchema = z
   .max(128)
   .regex(/^[A-Za-z0-9_-]+$/, "Document ID không hợp lệ");
 
-export const firestoreTimestampSchema = z.object({
-  seconds: z.number().int(),
-  nanoseconds: z.number().int().min(0).max(999_999_999),
-});
+export type FirestoreTimestampValue = {
+  readonly seconds: number;
+  readonly nanoseconds: number;
+};
+
+export const firestoreTimestampSchema = z.custom<FirestoreTimestampValue>(
+  (value) => {
+    if (value === null || typeof value !== "object") return false;
+    const timestamp = value as Partial<FirestoreTimestampValue>;
+    return (
+      Number.isInteger(timestamp.seconds) &&
+      Number.isInteger(timestamp.nanoseconds) &&
+      (timestamp.nanoseconds ?? -1) >= 0 &&
+      (timestamp.nanoseconds ?? 1_000_000_000) <= 999_999_999
+    );
+  },
+  "Firestore Timestamp không hợp lệ",
+);
 
 export const contentStatusSchema = z.enum([
   "draft",
