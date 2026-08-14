@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-muted/40">
       <header className="border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Logo />
+          <Logo href="/dashboard" />
           <LogoutButton />
         </div>
       </header>
