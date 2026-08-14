@@ -10,19 +10,144 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    // Learner-safe catalog: authenticated clients may read, but only the server writes.
+    match /languages/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
+    match /programs/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /courses/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /publishedCourseRevisions/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /publishedLessonRevisions/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /lexemes/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /examCatalog/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /sourceAttributions/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Private authoring and scoring data are only reachable through the Admin SDK.
+    match /contentCourses/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /contentUnits/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /contentLessons/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /contentActivities/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /questions/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /questionVersions/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /examBlueprints/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /examFormVersions/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /contentSources/{documentId} {
+      allow read, write: if false;
+    }
+
+    // User state is owner-readable. All mutations go through server endpoints.
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isAdmin();
+      allow read: if isOwner(userId);
+      allow write: if false;
+
+      match /enrollments/{documentId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /lessonProgress/{documentId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /reviewItems/{documentId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /dailyStats/{documentId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /attempts/{attemptId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+
+        match /sections/{sectionId} {
+          allow read: if isOwner(userId);
+          allow write: if false;
+        }
+      }
     }
 
+    // Operational collections are server-only.
+    match /auditLogs/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /idempotencyKeys/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /rateLimits/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /publishJobs/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /systemConfig/{documentId} {
+      allow read, write: if false;
+    }
+
+    // Unknown collections and subcollections stay closed by default.
     match /{document=**} {
-      allow read, write: if isAdmin();
+      allow read, write: if false;
     }
   }
 }

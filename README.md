@@ -69,6 +69,12 @@ Chạy emulator:
 firebase emulators:start
 ```
 
+Chạy bộ kiểm thử Firestore Rules (cần Java 21+):
+
+```bash
+npm run test:rules
+```
+
 Deploy rules/indexes:
 
 ```bash
