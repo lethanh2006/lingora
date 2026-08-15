@@ -1,0 +1,38 @@
+export const CATALOG_QUERY_CARDS = {
+  listPrograms: {
+    id: "Q-CAT-01",
+    useCase: "Liệt kê program đã publish trên trang /learn",
+    collection: "programs",
+    filters: ["status == published"],
+    orderBy: ["order asc"],
+    limit: 20,
+    readBudget: 20,
+  },
+  getProgram: {
+    id: "Q-CAT-02",
+    useCase: "Đọc program detail bằng stable ID",
+    collection: "programs",
+    filters: ["documentId == programId"],
+    orderBy: [],
+    limit: 1,
+    readBudget: 1,
+  },
+  listCoursesByProgram: {
+    id: "Q-CAT-03",
+    useCase: "Liệt kê course đã publish của một program",
+    collection: "courses",
+    filters: ["programId ==", "status == published"],
+    orderBy: ["order asc"],
+    limit: 50,
+    readBudget: 50,
+  },
+  getCourse: {
+    id: "Q-CAT-04",
+    useCase: "Đọc course detail bằng stable ID",
+    collection: "courses",
+    filters: ["documentId == courseId"],
+    orderBy: [],
+    limit: 1,
+    readBudget: 1,
+  },
+} as const;

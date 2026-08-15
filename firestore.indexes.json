@@ -1,4 +1,34 @@
 {
-  "indexes": [],
-  "fieldOverrides": []
+  "indexes": [
+    {
+      "collectionGroup": "programs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "order", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "courses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "programId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "order", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "contentActivities", "fieldPath": "body", "indexes": [] },
+    { "collectionGroup": "contentActivities", "fieldPath": "prompt", "indexes": [] },
+    { "collectionGroup": "contentActivities", "fieldPath": "scoringDefinition", "indexes": [] },
+    { "collectionGroup": "contentActivities", "fieldPath": "transcript", "indexes": [] },
+    { "collectionGroup": "contentLessons", "fieldPath": "objectives", "indexes": [] },
+    { "collectionGroup": "contentLessons", "fieldPath": "summary", "indexes": [] },
+    { "collectionGroup": "contentLessons", "fieldPath": "validationReport", "indexes": [] },
+    { "collectionGroup": "publishedLessonRevisions", "fieldPath": "activities", "indexes": [] },
+    { "collectionGroup": "publishedLessonRevisions", "fieldPath": "mediaManifest", "indexes": [] },
+    { "collectionGroup": "publishedLessonRevisions", "fieldPath": "sourceAttributions", "indexes": [] },
+    { "collectionGroup": "publishedLessonRevisions", "fieldPath": "vocabulary", "indexes": [] }
+  ]
 }
