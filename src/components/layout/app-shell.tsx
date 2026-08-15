@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { LayoutDashboard, Settings, ShieldCheck } from "lucide-react";
+import { BookOpen, LayoutDashboard, Settings, ShieldCheck } from "lucide-react";
 
 import { Logo } from "@/components/layout/logo";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/learn", label: "Học", icon: BookOpen },
   { href: "/settings", label: "Cài đặt", icon: Settings },
   { href: "/admin", label: "Quản trị", icon: ShieldCheck },
 ];

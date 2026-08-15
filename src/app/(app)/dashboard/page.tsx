@@ -1,5 +1,7 @@
 import { BookOpen, Clock3, Flame } from "lucide-react";
+import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/session";
 
@@ -31,9 +33,10 @@ export default async function DashboardPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Nội dung học sẽ xuất hiện ở đây</CardTitle>
-          <CardDescription>Base kỹ thuật đã sẵn sàng. Courses và lessons sẽ được thêm ở giai đoạn nghiệp vụ.</CardDescription>
+          <CardTitle>Bắt đầu lộ trình đầu tiên</CardTitle>
+          <CardDescription>Khám phá chương trình và chọn khóa học phù hợp với mục tiêu của bạn.</CardDescription>
         </CardHeader>
+        <CardContent><Link href="/learn" className={buttonVariants()}>Xem chương trình học</Link></CardContent>
       </Card>
     </div>
   );
