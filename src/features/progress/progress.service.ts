@@ -126,14 +126,67 @@ export function createProgressService(db: Firestore) {
       const validated = lessonProgressSchema.parse(progressData);
       await progressRef.set(validated);
 
-      // If progress just transitioned to completed, update dailyStats
+      // If progress just transitioned to completed, update dailyStats and generate review items
       if (!wasCompleted && input.status === "completed") {
         await this.updateDailyStats(userId, input.timeSpentSeconds, true);
+        await this.generateReviewItemsForLesson(userId, input.lessonRevisionId);
       } else {
         await this.updateDailyStats(userId, input.timeSpentSeconds, false);
+        if (input.status === "completed") {
+          await this.generateReviewItemsForLesson(userId, input.lessonRevisionId);
+        }
       }
 
       return validated;
+    },
+
+    async generateReviewItemsForLesson(userId: string, lessonRevisionId: string): Promise<void> {
+      const revisionSnap = await db
+        .collection(COLLECTIONS.publishedLessonRevisions)
+        .doc(lessonRevisionId)
+        .get();
+
+      if (!revisionSnap.exists) return;
+
+      const revisionData = revisionSnap.data()!;
+      const vocabulary = revisionData.vocabulary || [];
+      if (vocabulary.length === 0) return;
+
+      const now = Timestamp.now();
+
+      await db.runTransaction(async (transaction) => {
+        for (const vocab of vocabulary) {
+          const reviewItemRef = db
+            .collection(COLLECTIONS.users)
+            .doc(userId)
+            .collection(USER_SUBCOLLECTIONS.reviewItems)
+            .doc(vocab.lexemeId);
+
+          const snap = await transaction.get(reviewItemRef);
+          if (!snap.exists) {
+            const newReviewItem = {
+              schemaVersion: 1,
+              id: vocab.lexemeId,
+              uid: userId,
+              programId: revisionData.programId,
+              languageId: revisionData.languageId,
+              targetType: "lexeme",
+              targetId: vocab.lexemeId,
+              state: "new",
+              dueAt: now,
+              intervalDays: 0,
+              ease: 2.5,
+              correctStreak: 0,
+              lapseCount: 0,
+              lastReviewedAt: null,
+              schedulerVersion: "simple-sm2-v1",
+              createdAt: now,
+              updatedAt: now,
+            };
+            transaction.set(reviewItemRef, newReviewItem);
+          }
+        }
+      });
     },
 
     async updateDailyStats(userId: string, additionalSeconds: number, isLessonCompletion: boolean) {

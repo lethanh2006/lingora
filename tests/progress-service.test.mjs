@@ -88,6 +88,20 @@ function createMockDb(initialData = {}) {
         },
       };
     },
+    async runTransaction(fn) {
+      const transaction = {
+        async get(ref) {
+          return ref.get();
+        },
+        set(ref, data) {
+          ref.set(data);
+        },
+        update(ref, data) {
+          ref.update(data);
+        },
+      };
+      return fn(transaction);
+    },
   };
   return db;
 }
@@ -192,3 +206,61 @@ test("progress service: updateLessonProgress updates existing document and merge
   assert.equal(progress.boundedActivityState?.act2.completed, true);
   assert.ok(progress.completedAt);
 });
+
+test("progress service: generate review items on lesson completion", async () => {
+  const db = createMockDb({
+    "publishedLessonRevisions/lessonRev1": {
+      schemaVersion: 1,
+      id: "lessonRev1",
+      lessonId: "lesson1",
+      programId: "prog1",
+      languageId: "en",
+      vocabulary: [
+        {
+          lexemeId: "lexeme1",
+          term: "hello",
+          meaningVi: "xin chào",
+          pronunciation: "həˈlō",
+          example: "Hello, how are you?",
+          mediaRefs: [],
+        },
+      ],
+    },
+  });
+
+  const service = createProgressService(db);
+
+  await service.updateLessonProgress("user1", "lesson1", {
+    lessonRevisionId: "lessonRev1",
+    status: "completed",
+    lastActivityId: "act1",
+    boundedActivityState: {
+      act1: {
+        completed: true,
+        score: 1,
+        attempts: 1,
+        lastResponse: "response1",
+      },
+    },
+    completedRequiredCount: 1,
+    requiredActivityCount: 1,
+    timeSpentSeconds: 50,
+  });
+
+  // Verify that the review item was created
+  const reviewItemPath = "users/user1/reviewItems/lexeme1";
+  const reviewItem = db.store.get(reviewItemPath);
+  assert.ok(reviewItem);
+  assert.equal(reviewItem.id, "lexeme1");
+  assert.equal(reviewItem.uid, "user1");
+  assert.equal(reviewItem.programId, "prog1");
+  assert.equal(reviewItem.languageId, "en");
+  assert.equal(reviewItem.targetType, "lexeme");
+  assert.equal(reviewItem.targetId, "lexeme1");
+  assert.equal(reviewItem.state, "new");
+  assert.equal(reviewItem.intervalDays, 0);
+  assert.equal(reviewItem.correctStreak, 0);
+  assert.equal(reviewItem.lapseCount, 0);
+  assert.equal(reviewItem.schedulerVersion, "simple-sm2-v1");
+});
+
