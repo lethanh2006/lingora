@@ -63,16 +63,31 @@ export function toPublicCourseDto(input: unknown): PublicCourseDto {
 export function createCatalogRepository(firestore: Firestore) {
   return {
     async listPublishedPrograms(): Promise<PublicProgramDto[]> {
-      const snapshot = await firestore
-        .collection(COLLECTIONS.programs)
-        .where("status", "==", "published")
-        .orderBy("order", "asc")
-        .limit(CATALOG_QUERY_CARDS.listPrograms.limit)
-        .get();
+      try {
+        const snapshot = await firestore
+          .collection(COLLECTIONS.programs)
+          .where("status", "==", "published")
+          .orderBy("order", "asc")
+          .limit(CATALOG_QUERY_CARDS.listPrograms.limit)
+          .get();
 
-      return snapshot.docs.map((document) =>
-        toPublicProgramDto(parseDocument(document, (value) => programSchema.parse(value))),
-      );
+        return snapshot.docs.map((document) =>
+          toPublicProgramDto(parseDocument(document, (value) => programSchema.parse(value))),
+        );
+      } catch (err: unknown) {
+        const errMsg = String(err);
+        if (errMsg.includes("requires an index") || errMsg.includes("FAILED_PRECONDITION")) {
+          console.warn("Firestore index not ready for listPublishedPrograms. Falling back to in-memory filtering.");
+          const snapshot = await firestore.collection(COLLECTIONS.programs).get();
+          const programs = snapshot.docs
+            .map((doc) => parseDocument(doc, (value) => programSchema.parse(value)))
+            .filter((p) => p.status === "published")
+            .sort((a, b) => (a.order || 0) - (b.order || 0))
+            .slice(0, CATALOG_QUERY_CARDS.listPrograms.limit);
+          return programs.map(toPublicProgramDto);
+        }
+        throw err;
+      }
     },
 
     async getPublishedProgram(programId: string): Promise<PublicProgramDto | null> {
@@ -84,17 +99,32 @@ export function createCatalogRepository(firestore: Firestore) {
     },
 
     async listPublishedCourses(programId: string): Promise<PublicCourseDto[]> {
-      const snapshot = await firestore
-        .collection(COLLECTIONS.courses)
-        .where("programId", "==", programId)
-        .where("status", "==", "published")
-        .orderBy("order", "asc")
-        .limit(CATALOG_QUERY_CARDS.listCoursesByProgram.limit)
-        .get();
+      try {
+        const snapshot = await firestore
+          .collection(COLLECTIONS.courses)
+          .where("programId", "==", programId)
+          .where("status", "==", "published")
+          .orderBy("order", "asc")
+          .limit(CATALOG_QUERY_CARDS.listCoursesByProgram.limit)
+          .get();
 
-      return snapshot.docs.map((document) =>
-        toPublicCourseDto(parseDocument(document, (value) => courseSchema.parse(value))),
-      );
+        return snapshot.docs.map((document) =>
+          toPublicCourseDto(parseDocument(document, (value) => courseSchema.parse(value))),
+        );
+      } catch (err: unknown) {
+        const errMsg = String(err);
+        if (errMsg.includes("requires an index") || errMsg.includes("FAILED_PRECONDITION")) {
+          console.warn("Firestore index not ready for listPublishedCourses. Falling back to in-memory filtering.");
+          const snapshot = await firestore.collection(COLLECTIONS.courses).get();
+          const courses = snapshot.docs
+            .map((doc) => parseDocument(doc, (value) => courseSchema.parse(value)))
+            .filter((c) => c.programId === programId && c.status === "published")
+            .sort((a, b) => (a.order || 0) - (b.order || 0))
+            .slice(0, CATALOG_QUERY_CARDS.listCoursesByProgram.limit);
+          return courses.map(toPublicCourseDto);
+        }
+        throw err;
+      }
     },
 
     async getPublishedCourse(courseId: string): Promise<PublicCourseDto | null> {

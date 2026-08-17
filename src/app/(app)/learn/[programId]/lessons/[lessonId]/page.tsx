@@ -15,13 +15,37 @@ export default async function LessonPage({
   const db = getAdminDb();
 
   // Find the latest published revision for this lesson
-  const revSnap = await db
-    .collection(COLLECTIONS.publishedLessonRevisions)
-    .where("lessonId", "==", lessonId)
-    .where("programId", "==", programId)
-    .orderBy("revisionNumber", "desc")
-    .limit(1)
-    .get();
+  let revSnap;
+  try {
+    revSnap = await db
+      .collection(COLLECTIONS.publishedLessonRevisions)
+      .where("lessonId", "==", lessonId)
+      .where("programId", "==", programId)
+      .orderBy("revisionNumber", "desc")
+      .limit(1)
+      .get();
+  } catch (err: unknown) {
+    const errMsg = String(err);
+    if (errMsg.includes("requires an index") || errMsg.includes("FAILED_PRECONDITION")) {
+      console.warn("Firestore index not ready for publishedLessonRevisions. Falling back to in-memory filtering.");
+      const allRevs = await db
+        .collection(COLLECTIONS.publishedLessonRevisions)
+        .where("lessonId", "==", lessonId)
+        .where("programId", "==", programId)
+        .get();
+      const sortedDocs = allRevs.docs.sort((a, b) => {
+        const revA = a.data().revisionNumber || 0;
+        const revB = b.data().revisionNumber || 0;
+        return revB - revA;
+      });
+      revSnap = {
+        empty: sortedDocs.length === 0,
+        docs: sortedDocs.slice(0, 1),
+      };
+    } else {
+      throw err;
+    }
+  }
 
   if (revSnap.empty) {
     return (

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookOpen, Clock3, Layers3, Play } from "lucide-react";
+import { BookOpen, Clock3, Layers3, Play, CheckCircle2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CatalogEmptyState } from "@/features/catalog/components/catalog-empty-state";
@@ -14,7 +14,7 @@ export default async function CoursePage({
 }: {
   params: Promise<{ programId: string; courseId: string }>;
 }) {
-  await requireUser();
+  const user = await requireUser();
   const { programId, courseId } = await params;
   const db = getAdminDb();
   const repository = createCatalogRepository(db);
@@ -23,6 +23,18 @@ export default async function CoursePage({
     repository.getPublishedCourse(courseId),
   ]);
   if (!program || !course || course.programId !== program.id) notFound();
+
+  // Fetch student progress for the lessons in this course
+  const progressSnap = await db
+    .collection(COLLECTIONS.users)
+    .doc(user.uid)
+    .collection("lessonProgress")
+    .get();
+
+  const progressMap: Record<string, string> = {};
+  progressSnap.docs.forEach((doc) => {
+    progressMap[doc.id] = doc.data().status || "not_started";
+  });
 
   // Fetch course curriculum from the active revision pointer
   const revisionId = course.currentPublishedRevisionId;
@@ -148,28 +160,57 @@ export default async function CoursePage({
                     </p>
                   ) : (
                     <div className="grid gap-4">
-                      {unitLessons.map((lesson) => (
-                        <Link
-                          key={lesson.id}
-                          href={`/learn/${program.id}/lessons/${lesson.lessonId}`}
-                          className="flex items-center justify-between p-4 rounded-xl border bg-background hover:bg-muted/30 transition group"
-                        >
-                          <div className="space-y-1">
-                            <h4 className="font-semibold text-foreground group-hover:text-primary transition">
-                              {lesson.title}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{lesson.summary}</p>
-                            <div className="flex gap-4 text-xs text-muted-foreground">
-                              <span>⏱️ {lesson.estimatedMinutes} phút</span>
-                              <span>💡 {lesson.activities.length} câu hỏi</span>
-                              <span>📝 {lesson.vocabulary.length} từ vựng</span>
+                      {unitLessons.map((lesson) => {
+                        const status = progressMap[lesson.lessonId] || "not_started";
+
+                        return (
+                          <Link
+                            key={lesson.id}
+                            href={`/learn/${program.id}/lessons/${lesson.lessonId}`}
+                            className={`flex items-center justify-between p-4 rounded-xl border bg-background hover:bg-muted/30 transition group ${
+                              status === "completed" ? "border-green-200 bg-green-50/10" : ""
+                            }`}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-foreground group-hover:text-primary transition">
+                                  {lesson.title}
+                                </h4>
+                                {status === "completed" && (
+                                  <span className="px-2 py-0.5 rounded-full text-3xs font-bold uppercase bg-green-100 text-green-800 border border-green-200">
+                                    Hoàn thành
+                                  </span>
+                                )}
+                                {status === "in_progress" && (
+                                  <span className="px-2 py-0.5 rounded-full text-3xs font-bold uppercase bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                    Đang học
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{lesson.summary}</p>
+                              <div className="flex gap-4 text-xs text-muted-foreground">
+                                <span>⏱️ {lesson.estimatedMinutes} phút</span>
+                                <span>💡 {lesson.activities.length} câu hỏi</span>
+                                <span>📝 {lesson.vocabulary.length} từ vựng</span>
+                              </div>
                             </div>
-                          </div>
-                          <div className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition">
-                            <Play className="size-4 ml-0.5" />
-                          </div>
-                        </Link>
-                      ))}
+                            
+                            <div className={`grid size-9 place-items-center rounded-full transition ${
+                              status === "completed"
+                                ? "bg-green-100 text-green-700 group-hover:bg-green-600 group-hover:text-white"
+                                : status === "in_progress"
+                                ? "bg-yellow-100 text-yellow-700 group-hover:bg-yellow-600 group-hover:text-white"
+                                : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground"
+                            }`}>
+                              {status === "completed" ? (
+                                <CheckCircle2 className="size-4" />
+                              ) : (
+                                <Play className="size-4 ml-0.5" />
+                              )}
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

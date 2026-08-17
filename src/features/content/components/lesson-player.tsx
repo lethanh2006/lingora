@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, XCircle, ArrowLeft, Volume2, Award, ArrowRight } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  ArrowLeft,
+  Volume2,
+  Award,
+  ArrowRight,
+  Loader2,
+  Check,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
@@ -71,6 +81,13 @@ export type LessonPlayerProps = {
   };
 };
 
+type ActivityProgressState = {
+  completed: boolean;
+  score?: number | null;
+  attempts?: number;
+  lastResponse?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+};
+
 export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
   const router = useRouter();
   const { title, summary, objectives, activities, vocabulary } = lessonRevision;
@@ -84,7 +101,55 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
   const [reorderSelected, setReorderSelected] = useState<string[]>([]);
   const [speechActive, setSpeechActive] = useState(false);
 
+  // Persistence States
+  const [progressLoading, setProgressLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [completedRequiredCount, setCompletedRequiredCount] = useState(0);
+  const [boundedActivityState, setBoundedActivityState] = useState<Record<string, ActivityProgressState>>({});
+
   const currentActivity = activities[currentIdx];
+
+  // Fetch progress on load
+  useEffect(() => {
+    async function loadProgress() {
+      try {
+        const res = await fetch(`/api/progress?lessonId=${lessonRevision.lessonId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.progress) {
+            const p = data.progress;
+            setCompletedRequiredCount(p.completedRequiredCount || 0);
+            setBoundedActivityState(p.boundedActivityState || {});
+
+            // Resumes from the first incomplete activity index
+            const firstIncompleteIdx = activities.findIndex(
+              (act) => !p.boundedActivityState?.[act.id]?.completed
+            );
+            if (firstIncompleteIdx !== -1) {
+              setCurrentIdx(firstIncompleteIdx);
+            } else {
+              setCurrentIdx(0);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải tiến trình bài học", err);
+      } finally {
+        setProgressLoading(false);
+      }
+    }
+    loadProgress();
+  }, [lessonRevision.lessonId, activities]);
+
+  // Keep a timer for timeSpent
+  useEffect(() => {
+    if (screen !== "player") return;
+    const timer = setInterval(() => {
+      setTimeSpent((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [screen]);
 
   const speakText = (text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -97,15 +162,61 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
     window.speechSynthesis.speak(utterance);
   };
 
+  const triggerAutosave = useCallback(async (
+    updatedState: typeof boundedActivityState,
+    newCompletedCount: number,
+    isFinished: boolean,
+    lastActId: string | null
+  ) => {
+    setSaveStatus("saving");
+    try {
+      const isAllCompleted = activities.every((act) => !!updatedState[act.id]?.completed);
+      const status = (isFinished || isAllCompleted) ? "completed" : "in_progress";
+
+      // Snapshot study duration payload to send to database persistence
+      const payloadTime = timeSpent;
+      setTimeSpent(0); // Immediately reset timer to prevent double counting or race conditions
+
+      const res = await fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lessonId: lessonRevision.lessonId,
+          lessonRevisionId: lessonRevision.lessonId,
+          status,
+          lastActivityId: lastActId,
+          boundedActivityState: updatedState,
+          completedRequiredCount: newCompletedCount,
+          requiredActivityCount: activities.length,
+          timeSpentSeconds: payloadTime,
+        }),
+      });
+
+      if (res.ok) {
+        setSaveStatus("saved");
+      } else {
+        setSaveStatus("error");
+        // Restore time spent if the save failed
+        setTimeSpent((prev) => prev + payloadTime);
+      }
+    } catch (err) {
+      console.error("Autosave error", err);
+      setSaveStatus("error");
+    }
+  }, [lessonRevision.lessonId, activities, timeSpent]);
+
   const handleStart = () => {
     if (activities.length > 0) {
       setIsChecked(false);
       setIsCorrect(null);
       setReorderSelected([]);
       setScreen("player");
-      setCurrentIdx(0);
       setScore(0);
       setAnswers({});
+
+      // Set initial progress in Firestore
+      const initialProgressState = { ...boundedActivityState };
+      triggerAutosave(initialProgressState, completedRequiredCount, false, activities[currentIdx].id);
     } else {
       alert("Bài học này chưa có hoạt động học tập nào");
     }
@@ -139,18 +250,63 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
 
     setIsCorrect(correct);
     setIsChecked(true);
+
+    const actId = currentActivity.id;
+    const currentActState = boundedActivityState[actId] || { completed: false, score: 0, attempts: 0 };
+    const attempts = (currentActState.attempts || 0) + 1;
+
+    const updatedState = {
+      ...boundedActivityState,
+      [actId]: {
+        completed: correct,
+        score: correct ? 1 : 0,
+        attempts,
+        lastResponse: answers[actId] || null,
+      },
+    };
+
+    setBoundedActivityState(updatedState);
+
+    const newCompletedCount = Object.values(updatedState).filter((s) => s.completed).length;
+    setCompletedRequiredCount(newCompletedCount);
+
     if (correct) {
       setScore((s) => s + 1);
     }
+
+    // Trigger save status updates on checking answers
+    triggerAutosave(updatedState, newCompletedCount, false, actId);
   };
 
   const handleNext = () => {
+    const actId = currentActivity.id;
+    let updatedState = { ...boundedActivityState };
+
+    // Auto-complete non-question activities (explanation/vocabulary_card) on click Next
+    if (currentActivity.type === "explanation" || currentActivity.type === "vocabulary_card") {
+      updatedState = {
+        ...boundedActivityState,
+        [actId]: {
+          completed: true,
+          score: 1,
+          attempts: 1,
+          lastResponse: null,
+        },
+      };
+      setBoundedActivityState(updatedState);
+      const newCompletedCount = Object.values(updatedState).filter((s) => s.completed).length;
+      setCompletedRequiredCount(newCompletedCount);
+      triggerAutosave(updatedState, newCompletedCount, false, actId);
+    }
+
     if (currentIdx < activities.length - 1) {
       setIsChecked(false);
       setIsCorrect(null);
       setReorderSelected([]);
       setCurrentIdx((idx) => idx + 1);
     } else {
+      const finalCompletedCount = Object.values(updatedState).filter((s) => s.completed).length;
+      triggerAutosave(updatedState, finalCompletedCount, true, actId);
       setScreen("outro");
     }
   };
@@ -170,6 +326,15 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
     router.push(`/learn/${lessonRevision.programId}/courses/${lessonRevision.courseId}`);
   };
 
+  if (progressLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Loader2 className="size-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground">Đang tải tiến trình học...</p>
+      </div>
+    );
+  }
+
   if (screen === "intro") {
     return (
       <div className="max-w-2xl mx-auto space-y-6 pt-4">
@@ -183,10 +348,15 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
         <Card className="border-2 border-primary/10 overflow-hidden shadow-md">
           <div className="h-2 bg-primary" />
           <CardHeader className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
               <span className="px-2.5 py-0.5 rounded-full text-2xs font-bold uppercase bg-primary/10 text-primary">
-                Lesson Intro
+                Giới thiệu bài học
               </span>
+              {completedRequiredCount > 0 && (
+                <span className="text-xs text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                  Đã làm: {completedRequiredCount}/{activities.length} câu
+                </span>
+              )}
             </div>
             <CardTitle className="text-3xl font-extrabold tracking-tight">{title}</CardTitle>
             <CardDescription className="text-base">{summary}</CardDescription>
@@ -235,7 +405,8 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
             )}
 
             <Button size="lg" className="w-full text-base font-bold shadow-lg" onClick={handleStart}>
-              Bắt đầu học <ArrowRight className="size-5 ml-1" />
+              {completedRequiredCount > 0 ? "Học tiếp bài học" : "Bắt đầu học"}{" "}
+              <ArrowRight className="size-5 ml-1" />
             </Button>
           </CardContent>
         </Card>
@@ -304,6 +475,25 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
         <span className="text-xs font-mono text-muted-foreground shrink-0">
           {currentIdx + 1} / {activities.length}
         </span>
+      </div>
+
+      {/* Persistence indicator status badge */}
+      <div className="flex justify-end h-4">
+        {saveStatus === "saving" && (
+          <span className="text-xs text-yellow-600 font-medium flex items-center gap-1">
+            <Loader2 className="size-3 animate-spin" /> Đang lưu...
+          </span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+            <Check className="size-3" /> Đã lưu
+          </span>
+        )}
+        {saveStatus === "error" && (
+          <span className="text-xs text-red-600 font-medium flex items-center gap-1">
+            <AlertTriangle className="size-3" /> Lưu lỗi
+          </span>
+        )}
       </div>
 
       <Card className="shadow-md overflow-hidden min-h-[400px] flex flex-col justify-between">
