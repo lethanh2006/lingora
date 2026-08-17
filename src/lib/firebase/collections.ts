@@ -3,6 +3,7 @@ export const COLLECTIONS = {
   contentActivities: "contentActivities",
   contentCourses: "contentCourses",
   contentLessons: "contentLessons",
+  contentMedia: "contentMedia",
   contentSources: "contentSources",
   contentUnits: "contentUnits",
   courses: "courses",
