@@ -16,6 +16,76 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "order", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "contentUnits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "courseId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "order", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contentLessons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "order", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contentLessons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "attempts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "state", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reviewItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "state", "order": "ASCENDING" },
+        { "fieldPath": "dueAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "questionVersions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "programId", "order": "ASCENDING" },
+        { "fieldPath": "levelId", "order": "ASCENDING" },
+        { "fieldPath": "skill", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "difficulty", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "entityType", "order": "ASCENDING" },
+        { "fieldPath": "entityId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "actorUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
@@ -29,6 +99,15 @@
     { "collectionGroup": "publishedLessonRevisions", "fieldPath": "activities", "indexes": [] },
     { "collectionGroup": "publishedLessonRevisions", "fieldPath": "mediaManifest", "indexes": [] },
     { "collectionGroup": "publishedLessonRevisions", "fieldPath": "sourceAttributions", "indexes": [] },
-    { "collectionGroup": "publishedLessonRevisions", "fieldPath": "vocabulary", "indexes": [] }
+    { "collectionGroup": "publishedLessonRevisions", "fieldPath": "vocabulary", "indexes": [] },
+    { "collectionGroup": "questionVersions", "fieldPath": "promptBlocks", "indexes": [] },
+    { "collectionGroup": "questionVersions", "fieldPath": "options", "indexes": [] },
+    { "collectionGroup": "questionVersions", "fieldPath": "scoringDefinition", "indexes": [] },
+    { "collectionGroup": "questionVersions", "fieldPath": "explanation", "indexes": [] },
+    { "collectionGroup": "attempts", "fieldPath": "skillScores", "indexes": [] },
+    { "collectionGroup": "attempts", "fieldPath": "questionVersionIds", "indexes": [] },
+    { "collectionGroup": "sections", "fieldPath": "answers", "indexes": [] },
+    { "collectionGroup": "sections", "fieldPath": "flaggedQuestionIds", "indexes": [] },
+    { "collectionGroup": "examBlueprints", "fieldPath": "sections", "indexes": [] }
   ]
 }
