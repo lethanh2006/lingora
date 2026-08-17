@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "test": "node --conditions=react-server --test tests/content-contracts.test.mjs tests/enrollment-contracts.test.mjs tests/pilot-seed.test.mjs tests/publish-lesson.test.mjs tests/progress-contracts.test.mjs tests/progress-service.test.mjs tests/assessment-contracts.test.mjs tests/publish-flow.test.mjs tests/language-adapter.test.mjs tests/review-scheduler.test.mjs",
+    "test": "node --conditions=react-server --test tests/content-contracts.test.mjs tests/enrollment-contracts.test.mjs tests/pilot-seed.test.mjs tests/publish-lesson.test.mjs tests/progress-contracts.test.mjs tests/progress-service.test.mjs tests/assessment-contracts.test.mjs tests/publish-flow.test.mjs tests/language-adapter.test.mjs tests/review-scheduler.test.mjs tests/assessment-repository.test.mjs tests/exam-compiler.test.mjs",
     "test:rules": "firebase emulators:exec --project demo-lingora --only firestore \"node --test tests/firestore-rules.test.mjs\"",
     "test:seed": "firebase emulators:exec --project demo-lingora --only firestore \"node --conditions=react-server --test tests/firestore-seed.test.mjs\"",
     "test:catalog": "firebase emulators:exec --project demo-lingora --only firestore \"node --conditions=react-server --test tests/firestore-catalog.test.mjs\"",
