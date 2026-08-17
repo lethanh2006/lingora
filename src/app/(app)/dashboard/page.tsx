@@ -1,6 +1,7 @@
 import { AggregateField, Timestamp } from "firebase-admin/firestore";
 import { BookOpen, Clock3, Flame, Sparkles, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,6 +91,11 @@ export default async function DashboardPage() {
 
   let activeEnrollment = null;
   let activeProgram = null;
+
+  if (enrollmentsSnap.empty) {
+    // First time user — send to onboarding
+    redirect("/onboarding");
+  }
 
   if (!enrollmentsSnap.empty) {
     const doc = enrollmentsSnap.docs[0];
