@@ -4,15 +4,82 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/session";
+import { getAdminDb } from "@/lib/firebase/admin";
+import { COLLECTIONS } from "@/lib/firebase/collections";
 
-const stats = [
-  { label: "Chuỗi ngày học", value: "0 ngày", icon: Flame },
-  { label: "Bài đã hoàn thành", value: "0", icon: BookOpen },
-  { label: "Thời gian học", value: "0 phút", icon: Clock3 },
-];
+function calculateStreak(dates: string[]): number {
+  if (dates.length === 0) return 0;
+
+  // Sort dates descending
+  const sortedDates = [...dates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  // Get today and yesterday date strings in GMT+7
+  const tzOffset = 7 * 60 * 60 * 1000;
+  const todayStr = new Date(Date.now() + tzOffset).toISOString().split("T")[0];
+  const yesterdayStr = new Date(Date.now() + tzOffset - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  const newestDateStr = sortedDates[0];
+  if (newestDateStr !== todayStr && newestDateStr !== yesterdayStr) {
+    return 0;
+  }
+
+  let streak = 0;
+  // Start checking from the newest date in sortedDates
+  const checkDate = new Date(newestDateStr);
+
+  while (true) {
+    const checkStr = checkDate.toISOString().split("T")[0];
+    if (dates.includes(checkStr)) {
+      streak++;
+      // Subtract 1 day
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  const db = getAdminDb();
+
+  // Fetch student progress
+  const progressSnap = await db
+    .collection(COLLECTIONS.users)
+    .doc(user.uid)
+    .collection("lessonProgress")
+    .get();
+
+  let completedLessons = 0;
+  let totalTimeSpentSeconds = 0;
+
+  progressSnap.docs.forEach((doc) => {
+    const data = doc.data();
+    if (data.status === "completed") {
+      completedLessons++;
+    }
+    totalTimeSpentSeconds += data.timeSpentSeconds || 0;
+  });
+
+  const totalTimeSpentMinutes = Math.round(totalTimeSpentSeconds / 60);
+
+  // Fetch daily stats to compute streak
+  const dailyStatsSnap = await db
+    .collection(COLLECTIONS.users)
+    .doc(user.uid)
+    .collection("dailyStats")
+    .get();
+
+  const dates = dailyStatsSnap.docs.map((doc) => doc.id);
+  const streak = calculateStreak(dates);
+
+  const stats = [
+    { label: "Chuỗi ngày học", value: `${streak} ngày`, icon: Flame },
+    { label: "Bài đã hoàn thành", value: String(completedLessons), icon: BookOpen },
+    { label: "Thời gian học", value: `${totalTimeSpentMinutes} phút`, icon: Clock3 },
+  ];
 
   return (
     <div className="space-y-8">

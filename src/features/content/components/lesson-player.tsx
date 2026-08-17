@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { normalizeText } from "../adapters/language-adapter";
+import { RubyText } from "./ruby-text";
 
 type VocabularyEntry = {
   term: string;
@@ -37,6 +39,10 @@ type TokenEntry = {
 type GapAnswer = {
   gapId: string;
   acceptedAnswers: string[];
+  caseSensitive?: boolean;
+  kanaEquivalence?: boolean;
+  traditionalEquivalence?: boolean;
+  tonePolicy?: "ignore" | "require" | "numbers";
 };
 
 type ScoringDefinition = {
@@ -72,6 +78,7 @@ export type LessonPlayerProps = {
     lessonId: string;
     courseId: string;
     programId: string;
+    languageId?: string;
     title: string;
     summary: string;
     objectives: string[];
@@ -100,6 +107,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
   const [score, setScore] = useState(0);
   const [reorderSelected, setReorderSelected] = useState<string[]>([]);
   const [speechActive, setSpeechActive] = useState(false);
+  const [showRuby, setShowRuby] = useState(true);
 
   // Persistence States
   const [progressLoading, setProgressLoading] = useState(true);
@@ -237,9 +245,22 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
       const userAnswers = (answers[currentActivity.id] || {}) as Record<string, string>;
       const answerDefs = currentActivity.scoringDefinition.answers || [];
       correct = answerDefs.every((def) => {
-        const userText = (userAnswers[def.gapId] || "").trim().toLowerCase();
-        const acceptable = def.acceptedAnswers.map((a: string) => a.trim().toLowerCase());
-        return acceptable.includes(userText);
+        const userText = (userAnswers[def.gapId] || "");
+        const normUser = normalizeText(userText, lessonRevision.languageId || "", {
+          caseSensitive: def.caseSensitive,
+          kanaEquivalence: def.kanaEquivalence,
+          traditionalEquivalence: def.traditionalEquivalence,
+          tonePolicy: def.tonePolicy,
+        });
+        const acceptable = (def.acceptedAnswers || []).map((a: string) =>
+          normalizeText(a, lessonRevision.languageId || "", {
+            caseSensitive: def.caseSensitive,
+            kanaEquivalence: def.kanaEquivalence,
+            traditionalEquivalence: def.traditionalEquivalence,
+            tonePolicy: def.tonePolicy,
+          })
+        );
+        return acceptable.includes(normUser);
       });
     } else if (currentActivity.type === "reorder_tokens") {
       const target = currentActivity.scoringDefinition.correctTokenIds || [];
@@ -310,6 +331,39 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
       setScreen("outro");
     }
   };
+
+  // Keyboard Navigation / Enter key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (screen !== "player" || !currentActivity) return;
+      if (e.key === "Enter") {
+        if (e.isComposing) return;
+
+        if (!isChecked) {
+          let hasAnswer = false;
+          if (currentActivity.type === "explanation" || currentActivity.type === "vocabulary_card") {
+            hasAnswer = true;
+          } else if (currentActivity.type === "single_choice" || currentActivity.type === "listening_choice") {
+            hasAnswer = !!answers[currentActivity.id];
+          } else if (currentActivity.type === "gap_fill") {
+            const userAnswers = (answers[currentActivity.id] || {}) as Record<string, string>;
+            hasAnswer = Object.keys(userAnswers).length > 0 && Object.values(userAnswers).some(val => val.trim().length > 0);
+          } else if (currentActivity.type === "reorder_tokens") {
+            hasAnswer = reorderSelected.length > 0;
+          }
+
+          if (hasAnswer) {
+            handleCheck();
+          }
+        } else {
+          handleNext();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [screen, currentActivity, isChecked, answers, reorderSelected, handleCheck, handleNext]);
 
   const handleFinish = async () => {
     try {
@@ -454,16 +508,30 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6 pt-4">
       <div className="flex items-center justify-between gap-4">
-        <button
-          onClick={() => {
-            if (confirm("Bạn có chắc muốn thoát bài học này không?")) {
-              router.push(`/learn/${lessonRevision.programId}/courses/${lessonRevision.courseId}`);
-            }
-          }}
-          className="text-sm font-semibold text-muted-foreground hover:text-foreground transition"
-        >
-          Thoát
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => {
+              if (confirm("Bạn có chắc muốn thoát bài học này không?")) {
+                router.push(`/learn/${lessonRevision.programId}/courses/${lessonRevision.courseId}`);
+              }
+            }}
+            className="text-sm font-semibold text-muted-foreground hover:text-foreground transition"
+          >
+            Thoát
+          </button>
+
+          {(lessonRevision.languageId === "ja" || lessonRevision.languageId === "zh") && (
+            <button
+              onClick={() => setShowRuby(!showRuby)}
+              className="text-xs px-2 py-1 rounded bg-muted/60 hover:bg-muted font-bold text-muted-foreground hover:text-foreground transition flex items-center gap-1 border"
+            >
+              <span>{lessonRevision.languageId === "ja" ? "あ Furigana" : "Pīnyīn"}</span>
+              <span className={showRuby ? "text-green-600" : "text-red-500"}>
+                {showRuby ? "BẬT" : "TẮT"}
+              </span>
+            </button>
+          )}
+        </div>
 
         <div className="flex-1 max-w-md bg-muted rounded-full h-3.5 overflow-hidden border">
           <div
@@ -504,7 +572,9 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                 <p className="text-2xs font-bold text-primary uppercase tracking-wider">
                   {currentActivity.instruction}
                 </p>
-                <CardTitle className="text-xl mt-1">{currentActivity.prompt}</CardTitle>
+                <CardTitle className="text-xl mt-1">
+                  <RubyText text={currentActivity.prompt} enabled={showRuby} languageId={lessonRevision.languageId || ""} />
+                </CardTitle>
               </div>
               {currentActivity.type === "listening_choice" && (
                 <Button
@@ -522,7 +592,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
           <CardContent className="pt-6">
             {currentActivity.type === "explanation" && (
               <div className="p-4 bg-muted/30 rounded-2xl whitespace-pre-wrap leading-relaxed text-sm text-foreground">
-                {currentActivity.body}
+                <RubyText text={currentActivity.body || ""} enabled={showRuby} languageId={lessonRevision.languageId || ""} />
               </div>
             )}
 
@@ -536,7 +606,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-bold group-hover:text-primary transition">
-                        {entry.term}
+                        <RubyText text={entry.term} enabled={showRuby} languageId={lessonRevision.languageId || ""} />
                       </span>
                       <Button size="icon" variant="ghost" className="size-8">
                         <Volume2 className="size-4 text-muted-foreground group-hover:text-primary" />
@@ -550,7 +620,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                     <p className="text-sm font-semibold text-foreground mt-3">{entry.meaningVi}</p>
                     {entry.example && (
                       <p className="text-xs text-muted-foreground italic mt-2 pt-2 border-t">
-                        &quot;{entry.example}&quot;
+                        &quot;<RubyText text={entry.example} enabled={showRuby} languageId={lessonRevision.languageId || ""} />&quot;
                       </p>
                     )}
                   </div>
@@ -586,7 +656,9 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                       }
                       className={`w-full text-left p-4 rounded-xl border text-sm font-medium transition flex items-center justify-between ${borderClass}`}
                     >
-                      <span>{opt.text}</span>
+                      <span>
+                        <RubyText text={opt.text} enabled={showRuby} languageId={lessonRevision.languageId || ""} />
+                      </span>
                       {isChecked && isAnswerCorrect && (
                         <CheckCircle2 className="size-4 text-green-600 shrink-0" />
                       )}
@@ -604,7 +676,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                 <div className="p-6 bg-muted/20 rounded-2xl text-center text-lg leading-relaxed font-medium">
                   {currentActivity.template?.split(/(\{\{[a-zA-Z0-9_-]+\}\})/).map((part, index) => {
                     const isGap = part.startsWith("{{") && part.endsWith("}}");
-                    if (!isGap) return <span key={index}>{part}</span>;
+                    if (!isGap) return <RubyText key={index} text={part} enabled={showRuby} languageId={lessonRevision.languageId || ""} />;
 
                     const gapId = part.slice(2, -2);
                     const userAnswers = (answers[currentActivity.id] || {}) as Record<string, string>;
@@ -616,8 +688,22 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                     const isGapCorrect =
                       def &&
                       def.acceptedAnswers
-                        .map((a: string) => a.trim().toLowerCase())
-                        .includes(val.trim().toLowerCase());
+                        .map((a: string) =>
+                          normalizeText(a, lessonRevision.languageId || "", {
+                            caseSensitive: def.caseSensitive,
+                            kanaEquivalence: def.kanaEquivalence,
+                            traditionalEquivalence: def.traditionalEquivalence,
+                            tonePolicy: def.tonePolicy,
+                          })
+                        )
+                        .includes(
+                          normalizeText(val, lessonRevision.languageId || "", {
+                            caseSensitive: def.caseSensitive,
+                            kanaEquivalence: def.kanaEquivalence,
+                            traditionalEquivalence: def.traditionalEquivalence,
+                            tonePolicy: def.tonePolicy,
+                          })
+                        );
 
                     let inputClass = "border-b border-muted-foreground/60 focus:border-primary";
                     if (isChecked) {
@@ -689,7 +775,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                               : "bg-background hover:bg-muted text-foreground"
                           }`}
                         >
-                          {tok?.text}
+                          {tok && <RubyText text={tok.text} enabled={showRuby} languageId={lessonRevision.languageId || ""} />}
                         </button>
                       );
                     })
@@ -713,7 +799,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                               : "bg-background hover:bg-muted text-foreground"
                           }`}
                         >
-                          {tok.text}
+                          <RubyText text={tok.text} enabled={showRuby} languageId={lessonRevision.languageId || ""} />
                         </button>
                       );
                     })}
@@ -725,7 +811,10 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                     Đáp án đúng:{" "}
                     <strong className="font-mono text-sm text-foreground">
                       {currentActivity.scoringDefinition.correctTokenIds
-                        ?.map((id) => currentActivity.tokens?.find((t) => t.id === id)?.text)
+                        ?.map((id) => {
+                          const tokenText = currentActivity.tokens?.find((t) => t.id === id)?.text || "";
+                          return tokenText.replace(/([^\s[\]]+)\[([^[\]]+)\]/g, "$1");
+                        })
                         .join(" ")}
                     </strong>
                   </div>

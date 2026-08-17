@@ -187,6 +187,9 @@ const gapAnswerSchema = z
     gapId: stableIdSchema,
     acceptedAnswers: z.array(z.string().trim().min(1).max(200)).min(1).max(20),
     caseSensitive: z.boolean(),
+    kanaEquivalence: z.boolean().optional(),
+    traditionalEquivalence: z.boolean().optional(),
+    tonePolicy: z.enum(["ignore", "require", "numbers"]).optional(),
   })
   .strict();
 

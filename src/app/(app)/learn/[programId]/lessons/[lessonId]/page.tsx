@@ -69,6 +69,7 @@ export default async function LessonPage({
     lessonId: revision.lessonId,
     courseId: revision.courseId,
     programId: revision.programId,
+    languageId: revision.languageId,
     title: revision.title,
     summary: revision.summary,
     objectives: revision.objectives || [],
