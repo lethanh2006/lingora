@@ -86,6 +86,23 @@
         { "fieldPath": "actorUid", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "publishedCourseRevisions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "courseId", "order": "ASCENDING" },
+        { "fieldPath": "revisionNumber", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "publishedLessonRevisions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lessonId", "order": "ASCENDING" },
+        { "fieldPath": "programId", "order": "ASCENDING" },
+        { "fieldPath": "revisionNumber", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

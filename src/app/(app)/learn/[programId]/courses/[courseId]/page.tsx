@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookOpen, Clock3, Layers3 } from "lucide-react";
+import { BookOpen, Clock3, Layers3, Play } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CatalogEmptyState } from "@/features/catalog/components/catalog-empty-state";
 import { createCatalogRepository } from "@/features/catalog/catalog.repository";
 import { requireUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { COLLECTIONS } from "@/lib/firebase/collections";
 
 export default async function CoursePage({
   params,
@@ -15,12 +16,77 @@ export default async function CoursePage({
 }) {
   await requireUser();
   const { programId, courseId } = await params;
-  const repository = createCatalogRepository(getAdminDb());
+  const db = getAdminDb();
+  const repository = createCatalogRepository(db);
   const [program, course] = await Promise.all([
     repository.getPublishedProgram(programId),
     repository.getPublishedCourse(courseId),
   ]);
   if (!program || !course || course.programId !== program.id) notFound();
+
+  // Fetch course curriculum from the active revision pointer
+  const revisionId = course.currentPublishedRevisionId;
+  
+  type UnitData = {
+    id: string;
+    title: string;
+    order: number;
+  };
+
+  type LessonRevisionData = {
+    id: string;
+    lessonId: string;
+    unitId: string;
+    title: string;
+    summary: string;
+    estimatedMinutes: number;
+    activities: unknown[];
+    vocabulary: unknown[];
+  };
+
+  let units: UnitData[] = [];
+  let lessons: LessonRevisionData[] = [];
+
+  if (revisionId) {
+    const revSnap = await db.collection(COLLECTIONS.publishedCourseRevisions).doc(revisionId).get();
+    if (revSnap.exists) {
+      const revData = revSnap.data()!;
+      const orderedUnitIds = revData.orderedUnitIds || [];
+      const lessonRevisionMap = revData.lessonRevisionMap || {};
+
+      // Fetch units in order
+      if (orderedUnitIds.length > 0) {
+        const unitPromises = orderedUnitIds.map(async (unitId: string) => {
+          const snap = await db.collection(COLLECTIONS.contentUnits).doc(unitId).get();
+          if (!snap.exists) return null;
+          const udata = snap.data()!;
+          return { id: snap.id, title: udata.title || "", order: udata.order || 0 };
+        });
+        units = (await Promise.all(unitPromises)).filter((u): u is UnitData => u !== null);
+      }
+
+      // Fetch lesson revisions
+      const lessonRevIds = Object.values(lessonRevisionMap) as string[];
+      if (lessonRevIds.length > 0) {
+        const lessonPromises = lessonRevIds.map(async (revId: string) => {
+          const snap = await db.collection(COLLECTIONS.publishedLessonRevisions).doc(revId).get();
+          if (!snap.exists) return null;
+          const ldata = snap.data()!;
+          return {
+            id: snap.id,
+            lessonId: ldata.lessonId || "",
+            unitId: ldata.unitId || "",
+            title: ldata.title || "",
+            summary: ldata.summary || "",
+            estimatedMinutes: ldata.estimatedMinutes || 0,
+            activities: ldata.activities || [],
+            vocabulary: ldata.vocabulary || [],
+          };
+        });
+        lessons = (await Promise.all(lessonPromises)).filter((l): l is LessonRevisionData => l !== null);
+      }
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -53,13 +119,64 @@ export default async function CoursePage({
         </Card>
       </div>
 
-      <section aria-labelledby="lesson-heading" className="space-y-4">
-        <h2 id="lesson-heading" className="text-2xl font-semibold tracking-tight">Bài học</h2>
-        <CatalogEmptyState
-          icon={BookOpen}
-          title="Danh sách bài học sẽ xuất hiện tại đây"
-          description="Course overview đã sẵn sàng. Lesson player sẽ được kết nối ở phần triển khai kế tiếp."
-        />
+      <section aria-labelledby="lesson-heading" className="space-y-6">
+        <h2 id="lesson-heading" className="text-2xl font-semibold tracking-tight">Chương trình học</h2>
+        
+        {units.length === 0 ? (
+          <CatalogEmptyState
+            icon={BookOpen}
+            title="Danh sách bài học chưa xuất bản"
+            description="Nội dung khóa học đang được biên soạn và sẽ sớm ra mắt."
+          />
+        ) : (
+          <div className="space-y-8">
+            {units.map((unit, index) => {
+              const unitLessons = lessons.filter((l) => l.unitId === unit.id);
+
+              return (
+                <div key={unit.id} className="space-y-4">
+                  <div className="border-b pb-2">
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+                      Unit {index + 1}
+                    </span>
+                    <h3 className="text-lg font-bold text-foreground">{unit.title}</h3>
+                  </div>
+
+                  {unitLessons.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic pl-2">
+                      Không có bài học nào trong phần này.
+                    </p>
+                  ) : (
+                    <div className="grid gap-4">
+                      {unitLessons.map((lesson) => (
+                        <Link
+                          key={lesson.id}
+                          href={`/learn/${program.id}/lessons/${lesson.lessonId}`}
+                          className="flex items-center justify-between p-4 rounded-xl border bg-background hover:bg-muted/30 transition group"
+                        >
+                          <div className="space-y-1">
+                            <h4 className="font-semibold text-foreground group-hover:text-primary transition">
+                              {lesson.title}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">{lesson.summary}</p>
+                            <div className="flex gap-4 text-xs text-muted-foreground">
+                              <span>⏱️ {lesson.estimatedMinutes} phút</span>
+                              <span>💡 {lesson.activities.length} câu hỏi</span>
+                              <span>📝 {lesson.vocabulary.length} từ vựng</span>
+                            </div>
+                          </div>
+                          <div className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition">
+                            <Play className="size-4 ml-0.5" />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );
