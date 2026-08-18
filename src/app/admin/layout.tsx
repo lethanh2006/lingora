@@ -18,6 +18,7 @@ import { LogoutButton } from "@/features/auth/components/logout-button";
 const adminNav = [
   { href: "/admin", label: "Tổng quan", icon: LayoutDashboard },
   { href: "/admin/content", label: "Biên dịch & Xuất bản", icon: BookOpen },
+  { href: "/admin/activities", label: "Quản lý Hoạt động", icon: Layers },
   { href: "/admin/questions", label: "Ngân hàng câu hỏi", icon: HelpCircle },
   { href: "/admin/exams", label: "Đề thi (Blueprints)", icon: FileQuestion },
   { href: "/admin/sources", label: "Source Registry", icon: Link2 },

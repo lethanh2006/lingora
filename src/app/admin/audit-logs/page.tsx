@@ -34,8 +34,8 @@ export default async function AdminAuditLogsPage() {
     return {
       id: doc.id,
       action: data.action || "unknown",
-      resourceType: data.resourceType || "-",
-      resourceId: data.resourceId || "-",
+      entityType: data.entityType || "-",
+      entityId: data.entityId || "-",
       actorUid: data.actorUid || "system",
       actorEmail: data.actorEmail || null,
       metadata: data.metadata || null,
@@ -125,8 +125,8 @@ export default async function AdminAuditLogsPage() {
                       )}
                       {/* Resource */}
                       <span className="text-sm text-muted-foreground">
-                        {log.resourceType}{" "}
-                        <span className="font-mono text-foreground font-semibold">{log.resourceId}</span>
+                        {log.entityType}{" "}
+                        <span className="font-mono text-foreground font-semibold">{log.entityId}</span>
                       </span>
                     </div>
 
