@@ -103,6 +103,14 @@
         { "fieldPath": "programId", "order": "ASCENDING" },
         { "fieldPath": "revisionNumber", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "publishedLessonRevisions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lessonId", "order": "ASCENDING" },
+        { "fieldPath": "revisionNumber", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

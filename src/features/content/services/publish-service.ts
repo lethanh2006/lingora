@@ -140,14 +140,16 @@ export function createPublishService(firestore: Firestore) {
         const revisionsColl = firestore.collection(COLLECTIONS.publishedLessonRevisions);
         const querySnap = await revisionsColl
           .where("lessonId", "==", lessonId)
-          .orderBy("revisionNumber", "desc")
-          .limit(1)
           .get();
 
         let revisionNumber = 1;
         if (!querySnap.empty) {
-          const latestRev = querySnap.docs[0].data();
-          revisionNumber = (latestRev.revisionNumber || 0) + 1;
+          let maxRev = 0;
+          for (const doc of querySnap.docs) {
+            const num = doc.data().revisionNumber || 0;
+            if (num > maxRev) maxRev = num;
+          }
+          revisionNumber = maxRev + 1;
         }
 
         const now = Timestamp.now();
@@ -218,25 +220,29 @@ export function createPublishService(firestore: Firestore) {
         const unitsSnap = await firestore
           .collection(COLLECTIONS.contentUnits)
           .where("courseId", "==", courseId)
-          .orderBy("order", "asc")
           .get();
 
-        const orderedUnitIds = unitsSnap.docs.map((doc) => doc.id);
+        const sortedUnitsDocs = [...unitsSnap.docs].sort(
+          (a, b) => (a.data().order || 0) - (b.data().order || 0)
+        );
+
+        const orderedUnitIds = sortedUnitsDocs.map((doc) => doc.id);
         const lessonRevisionMap: Record<string, string> = {};
 
-        for (const unitDoc of unitsSnap.docs) {
+        for (const unitDoc of sortedUnitsDocs) {
           const lessonsSnap = await firestore
             .collection(COLLECTIONS.contentLessons)
             .where("unitId", "==", unitDoc.id)
-            .orderBy("order", "asc")
             .get();
 
-          for (const lessonDoc of lessonsSnap.docs) {
+          const sortedLessonsDocs = [...lessonsSnap.docs].sort(
+            (a, b) => (a.data().order || 0) - (b.data().order || 0)
+          );
+
+          for (const lessonDoc of sortedLessonsDocs) {
             const revSnap = await firestore
               .collection(COLLECTIONS.publishedLessonRevisions)
               .where("lessonId", "==", lessonDoc.id)
-              .orderBy("revisionNumber", "desc")
-              .limit(1)
               .get();
 
             if (revSnap.empty) {
@@ -244,21 +250,32 @@ export function createPublishService(firestore: Firestore) {
                 `Lesson ${lessonDoc.id} chưa được publish revision nào`
               );
             }
-            lessonRevisionMap[lessonDoc.id] = revSnap.docs[0].id;
+            let latestDoc = revSnap.docs[0];
+            let maxRev = latestDoc.data().revisionNumber || 0;
+            for (const doc of revSnap.docs) {
+              const num = doc.data().revisionNumber || 0;
+              if (num > maxRev) {
+                maxRev = num;
+                latestDoc = doc;
+              }
+            }
+            lessonRevisionMap[lessonDoc.id] = latestDoc.id;
           }
         }
 
         const revisionsColl = firestore.collection(COLLECTIONS.publishedCourseRevisions);
         const querySnap = await revisionsColl
           .where("courseId", "==", courseId)
-          .orderBy("revisionNumber", "desc")
-          .limit(1)
           .get();
 
         let revisionNumber = 1;
         if (!querySnap.empty) {
-          const latestRev = querySnap.docs[0].data();
-          revisionNumber = (latestRev.revisionNumber || 0) + 1;
+          let maxRev = 0;
+          for (const doc of querySnap.docs) {
+            const num = doc.data().revisionNumber || 0;
+            if (num > maxRev) maxRev = num;
+          }
+          revisionNumber = maxRev + 1;
         }
 
         const now = Timestamp.now();
