@@ -485,3 +485,56 @@ test("attempt service: submitAndGradeAttempt calculates scores correctly", async
     percent: 100,
   });
 });
+
+test("attempt service: submitAndGradeAttempt grades an attempt marked as expired", async () => {
+  const expiredAt = new Timestamp(timestamp.seconds - 600, 0);
+  const expiredAttempt = {
+    schemaVersion: 1,
+    id: "attempt-expired",
+    uid: "user-1",
+    examFormVersionId: "form-version-1",
+    blueprintId: "blueprint-eng-a1",
+    programId: "general-english-cefr",
+    levelId: "a1",
+    state: "expired",
+    startedAt: new Timestamp(timestamp.seconds - 1200, 0),
+    expiresAt: expiredAt,
+    submittedAt: expiredAt,
+    gradedAt: null,
+    currentSectionId: "reading-sec",
+    scoringVersion: "1.0.0",
+    totalRawScore: null,
+    totalPercent: null,
+    skillScores: null,
+    questionVersionIds: ["qv-1"],
+    createdAt: timestamp,
+    updatedAt: expiredAt,
+  };
+
+  const db = createMockDb({
+    "users/user-1/attempts/attempt-expired": expiredAttempt,
+    "users/user-1/attempts/attempt-expired/sections/reading-sec": {
+      answers: { "qv-1": { selectedOptionId: "hello" } },
+      flaggedQuestionIds: [],
+      lastSavedAt: expiredAt,
+      clientRevision: 1,
+      serverRevision: 1,
+    },
+    "examBlueprints/blueprint-eng-a1": sampleBlueprint,
+    "questionVersions/qv-1": sampleQuestionVersion,
+  });
+  const service = createAttemptService(db);
+
+  const graded = await service.submitAndGradeAttempt("user-1", "attempt-expired");
+
+  assert.equal(graded.state, "graded");
+  assert.equal(graded.totalRawScore, 10);
+  assert.equal(graded.totalPercent, 100);
+  assert.equal(graded.submittedAt.seconds, expiredAt.seconds);
+  assert.equal(graded.submittedAt.nanoseconds, expiredAt.nanoseconds);
+  assert.notEqual(graded.gradedAt, null);
+
+  const stored = db.store.get("users/user-1/attempts/attempt-expired");
+  assert.equal(stored.state, "graded");
+  assert.equal(stored.totalRawScore, 10);
+});

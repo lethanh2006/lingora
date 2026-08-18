@@ -265,12 +265,9 @@ export function createAttemptService(db: Firestore) {
       }
 
       const attempt = attemptSchema.parse(attemptSnap.data());
-      if (attempt.state !== "in_progress") {
-        return attempt; // Already submitted/graded
+      if (attempt.state !== "in_progress" && attempt.state !== "expired") {
+        return attempt; // Already finalized
       }
-
-      const isExpired = getMillis(attempt.expiresAt) <= getMillis(submittedAt);
-      const finalState = isExpired ? "expired" : "submitted";
 
       // 1. Fetch blueprint
       const blueprintSnap = await db
@@ -362,7 +359,7 @@ export function createAttemptService(db: Firestore) {
       const updatedAttempt: Attempt = {
         ...attempt,
         state: "graded", // transition directly to graded for seamless UX
-        submittedAt,
+        submittedAt: attempt.submittedAt ?? submittedAt,
         gradedAt: submittedAt,
         totalRawScore,
         totalPercent,
