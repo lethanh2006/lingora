@@ -86,7 +86,7 @@ export default async function AdminPage() {
       label: "Bài học",
       value: lessonsSnap.data().count,
       icon: BookOpen,
-      href: "/admin",
+      href: "/admin/content",
       color: "text-amber-600",
       bg: "bg-amber-50",
     },
