@@ -9,10 +9,33 @@ import {
   timestamp,
 } from "./fixtures/content.mjs";
 
+function cloneFirestoreValue(value) {
+  if (Array.isArray(value)) return value.map(cloneFirestoreValue);
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    Number.isInteger(value.seconds) &&
+    Number.isInteger(value.nanoseconds)
+  ) {
+    return value;
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [
+        key,
+        cloneFirestoreValue(nestedValue),
+      ]),
+    );
+  }
+
+  return value;
+}
+
 function createMockDb(initialData = {}) {
   const store = new Map();
+  let automaticId = 0;
   for (const [key, val] of Object.entries(initialData)) {
-    store.set(key, structuredClone(val));
+    store.set(key, cloneFirestoreValue(val));
   }
 
   const db = {
@@ -20,23 +43,24 @@ function createMockDb(initialData = {}) {
     collection(collectionName) {
       return {
         doc(docId) {
-          const path = `${collectionName}/${docId}`;
+          const resolvedDocId = docId ?? `auto-${++automaticId}`;
+          const path = `${collectionName}/${resolvedDocId}`;
           return {
             path,
-            id: docId,
+            id: resolvedDocId,
             async get() {
               const data = store.get(path);
               return {
                 exists: !!data,
-                id: docId,
+                id: resolvedDocId,
                 ref: { path },
                 data() {
-                  return data ? structuredClone(data) : undefined;
+                  return data ? cloneFirestoreValue(data) : undefined;
                 },
               };
             },
             async set(data) {
-              store.set(path, structuredClone(data));
+              store.set(path, cloneFirestoreValue(data));
             },
             async update(data) {
               const current = store.get(path) || {};
@@ -60,7 +84,7 @@ function createMockDb(initialData = {}) {
                           docs.push({
                             id: path.split("/")[1],
                             data() {
-                              return structuredClone(data);
+                              return cloneFirestoreValue(data);
                             },
                           });
                         }
@@ -86,7 +110,7 @@ function createMockDb(initialData = {}) {
                   docs.push({
                     id: path.split("/")[1],
                     data() {
-                      return structuredClone(data);
+                      return cloneFirestoreValue(data);
                     },
                   });
                 }
@@ -105,7 +129,7 @@ function createMockDb(initialData = {}) {
               docs.push({
                 id: path.split("/")[1],
                 data() {
-                  return structuredClone(data);
+                  return cloneFirestoreValue(data);
                 },
               });
             }
@@ -123,10 +147,10 @@ function createMockDb(initialData = {}) {
           return ref.get();
         },
         create(ref, data) {
-          store.set(ref.path, structuredClone(data));
+          store.set(ref.path, cloneFirestoreValue(data));
         },
         set(ref, data) {
-          store.set(ref.path, structuredClone(data));
+          store.set(ref.path, cloneFirestoreValue(data));
         },
         update(ref, data) {
           const current = store.get(ref.path) || {};
@@ -310,15 +334,84 @@ test("publish service compiles and publishes draft lesson inside transaction", a
 
   const publishService = createPublishService(db);
   const revision = await publishService.publishLesson("hello-and-goodbye", "admin-uid");
+  const retriedRevision = await publishService.publishLesson(
+    "hello-and-goodbye",
+    "admin-uid",
+  );
 
   assert.equal(revision.lessonId, "hello-and-goodbye");
   assert.equal(revision.revisionNumber, 1);
+  assert.equal(retriedRevision.id, revision.id);
   assert.equal(db.store.get("contentLessons/hello-and-goodbye").status, "published");
   assert.equal(db.store.has(`publishedLessonRevisions/${revision.id}`), true);
+
+  const publishedRevisions = [...db.store.keys()].filter((key) =>
+    key.startsWith("publishedLessonRevisions/"),
+  );
+  assert.equal(publishedRevisions.length, 1);
 
   const auditLogs = [...db.store.entries()].filter(([key]) => key.startsWith("auditLogs/"));
   assert.equal(auditLogs.length, 1);
   assert.equal(auditLogs[0][1].action, "publish_lesson");
   assert.equal(auditLogs[0][1].entityId, "hello-and-goodbye");
   assert.equal(auditLogs[0][1].actorUid, "admin-uid");
+});
+
+test("publish course reuses the current revision when its lesson map is unchanged", async () => {
+  const courseDraft = {
+    schemaVersion: 1,
+    id: "english-a1",
+    programId: "general-english",
+    levelId: "a1",
+    title: "English A1",
+    description: "English course for beginners.",
+    coverMediaId: null,
+    estimatedMinutes: 40,
+    currentPublishedRevisionId: null,
+    status: "approved",
+    order: 0,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+  const db = createMockDb({
+    "contentCourses/english-a1": courseDraft,
+    "contentUnits/greetings": {
+      id: "greetings",
+      courseId: "english-a1",
+      order: 0,
+    },
+    "contentLessons/hello-and-goodbye": {
+      id: "hello-and-goodbye",
+      unitId: "greetings",
+      order: 0,
+    },
+    "publishedLessonRevisions/hello-and-goodbye-rev-1": {
+      lessonId: "hello-and-goodbye",
+      revisionNumber: 1,
+    },
+  });
+  const publishService = createPublishService(db);
+
+  const revision = await publishService.publishCourse(
+    "english-a1",
+    "admin-uid",
+    "Pilot release",
+  );
+  const retriedRevision = await publishService.publishCourse(
+    "english-a1",
+    "admin-uid",
+    "Pilot release",
+  );
+
+  assert.equal(revision.revisionNumber, 1);
+  assert.equal(retriedRevision.id, revision.id);
+  assert.equal(db.store.get("courses/english-a1").currentPublishedRevisionId, revision.id);
+  assert.equal(db.store.get("contentCourses/english-a1").status, "published");
+
+  const publishedRevisions = [...db.store.keys()].filter((key) =>
+    key.startsWith("publishedCourseRevisions/"),
+  );
+  const auditLogs = [...db.store.keys()].filter((key) => key.startsWith("auditLogs/"));
+  assert.equal(publishedRevisions.length, 1);
+  assert.equal(auditLogs.length, 1);
 });

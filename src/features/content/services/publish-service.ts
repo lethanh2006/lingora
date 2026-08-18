@@ -11,6 +11,7 @@ import {
   sourceAttributionSchema,
   courseRevisionSchema,
   courseSchema,
+  publishedLessonRevisionSchema,
   type PublishedLessonRevision,
 } from "../schemas/content.schema.ts";
 import { contentMediaSchema } from "../schemas/media.schema.ts";
@@ -21,6 +22,20 @@ export class PublishError extends Error {
     super(message);
     this.name = "PublishError";
   }
+}
+
+function recordsEqual(
+  left: Record<string, string>,
+  right: Record<string, string>,
+) {
+  const leftEntries = Object.entries(left).sort(([leftKey], [rightKey]) =>
+    leftKey.localeCompare(rightKey),
+  );
+  const rightEntries = Object.entries(right).sort(([leftKey], [rightKey]) =>
+    leftKey.localeCompare(rightKey),
+  );
+
+  return JSON.stringify(leftEntries) === JSON.stringify(rightEntries);
 }
 
 export function createPublishService(firestore: Firestore) {
@@ -138,18 +153,48 @@ export function createPublishService(firestore: Firestore) {
         const mediaManifest = await Promise.all(mediaPromises);
 
         const revisionsColl = firestore.collection(COLLECTIONS.publishedLessonRevisions);
-        const querySnap = await revisionsColl
+        const latestRevisionQuery = revisionsColl
           .where("lessonId", "==", lessonId)
-          .get();
+          .orderBy("revisionNumber", "desc")
+          .limit(1);
+        const querySnap = await transaction.get(latestRevisionQuery);
 
         let revisionNumber = 1;
+        let latestRevision: PublishedLessonRevision | null = null;
         if (!querySnap.empty) {
-          let maxRev = 0;
-          for (const doc of querySnap.docs) {
-            const num = doc.data().revisionNumber || 0;
-            if (num > maxRev) maxRev = num;
+          latestRevision = publishedLessonRevisionSchema.parse(querySnap.docs[0].data());
+          revisionNumber = latestRevision.revisionNumber + 1;
+        }
+
+        if (latestRevision) {
+          const comparableLesson =
+            lesson.status === "published"
+              ? { ...lesson, status: "approved" as const }
+              : lesson;
+          const candidate = compilePublishedLesson({
+            revisionId: latestRevision.id,
+            revisionNumber: latestRevision.revisionNumber,
+            publishedAt: latestRevision.publishedAt,
+            publishedBy: latestRevision.publishedBy,
+            lesson: comparableLesson,
+            courseId,
+            programId,
+            languageId,
+            activities,
+            vocabulary,
+            mediaManifest,
+            sourceAttributions,
+          });
+
+          if (candidate.checksum === latestRevision.checksum) {
+            if (lesson.status !== "published") {
+              transaction.update(lessonRef, {
+                status: "published",
+                updatedAt: Timestamp.now(),
+              });
+            }
+            return latestRevision;
           }
-          revisionNumber = maxRev + 1;
         }
 
         const now = Timestamp.now();
@@ -217,10 +262,11 @@ export function createPublishService(firestore: Firestore) {
 
         const courseDraft = courseSchema.parse(courseDraftSnap.data());
 
-        const unitsSnap = await firestore
-          .collection(COLLECTIONS.contentUnits)
-          .where("courseId", "==", courseId)
-          .get();
+        const unitsSnap = await transaction.get(
+          firestore
+            .collection(COLLECTIONS.contentUnits)
+            .where("courseId", "==", courseId),
+        );
 
         const sortedUnitsDocs = [...unitsSnap.docs].sort(
           (a, b) => (a.data().order || 0) - (b.data().order || 0)
@@ -230,52 +276,65 @@ export function createPublishService(firestore: Firestore) {
         const lessonRevisionMap: Record<string, string> = {};
 
         for (const unitDoc of sortedUnitsDocs) {
-          const lessonsSnap = await firestore
-            .collection(COLLECTIONS.contentLessons)
-            .where("unitId", "==", unitDoc.id)
-            .get();
+          const lessonsSnap = await transaction.get(
+            firestore
+              .collection(COLLECTIONS.contentLessons)
+              .where("unitId", "==", unitDoc.id),
+          );
 
           const sortedLessonsDocs = [...lessonsSnap.docs].sort(
             (a, b) => (a.data().order || 0) - (b.data().order || 0)
           );
 
           for (const lessonDoc of sortedLessonsDocs) {
-            const revSnap = await firestore
-              .collection(COLLECTIONS.publishedLessonRevisions)
-              .where("lessonId", "==", lessonDoc.id)
-              .get();
+            const revSnap = await transaction.get(
+              firestore
+                .collection(COLLECTIONS.publishedLessonRevisions)
+                .where("lessonId", "==", lessonDoc.id)
+                .orderBy("revisionNumber", "desc")
+                .limit(1),
+            );
 
             if (revSnap.empty) {
               throw new PublishError(
                 `Lesson ${lessonDoc.id} chưa được publish revision nào`
               );
             }
-            let latestDoc = revSnap.docs[0];
-            let maxRev = latestDoc.data().revisionNumber || 0;
-            for (const doc of revSnap.docs) {
-              const num = doc.data().revisionNumber || 0;
-              if (num > maxRev) {
-                maxRev = num;
-                latestDoc = doc;
-              }
-            }
-            lessonRevisionMap[lessonDoc.id] = latestDoc.id;
+            lessonRevisionMap[lessonDoc.id] = revSnap.docs[0].id;
           }
         }
 
         const revisionsColl = firestore.collection(COLLECTIONS.publishedCourseRevisions);
-        const querySnap = await revisionsColl
+        const latestRevisionQuery = revisionsColl
           .where("courseId", "==", courseId)
-          .get();
+          .orderBy("revisionNumber", "desc")
+          .limit(1);
+        const querySnap = await transaction.get(latestRevisionQuery);
 
         let revisionNumber = 1;
+        let latestRevision = null;
         if (!querySnap.empty) {
-          let maxRev = 0;
-          for (const doc of querySnap.docs) {
-            const num = doc.data().revisionNumber || 0;
-            if (num > maxRev) maxRev = num;
+          latestRevision = courseRevisionSchema.parse(querySnap.docs[0].data());
+          revisionNumber = latestRevision.revisionNumber + 1;
+        }
+
+        const currentPublishedRevisionId = courseSnap.exists
+          ? courseSnap.data()?.currentPublishedRevisionId
+          : null;
+        if (
+          latestRevision &&
+          currentPublishedRevisionId === latestRevision.id &&
+          latestRevision.releaseNotes === releaseNotes &&
+          JSON.stringify(latestRevision.orderedUnitIds) === JSON.stringify(orderedUnitIds) &&
+          recordsEqual(latestRevision.lessonRevisionMap, lessonRevisionMap)
+        ) {
+          if (courseDraft.status !== "published") {
+            transaction.update(courseDraftRef, {
+              status: "published",
+              updatedAt: Timestamp.now(),
+            });
           }
-          revisionNumber = maxRev + 1;
+          return latestRevision;
         }
 
         const now = Timestamp.now();
