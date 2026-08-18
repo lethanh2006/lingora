@@ -31,6 +31,33 @@ function createMockDb(initialData = {}) {
     store,
     collection(collectionName) {
       return {
+        where(field, operator, value) {
+          assert.equal(operator, "==");
+          return {
+            limit(limitValue) {
+              return {
+                async get() {
+                  const docs = [...store.entries()]
+                    .filter(
+                      ([path, data]) =>
+                        path.startsWith(`${collectionName}/`) &&
+                        path.split("/").length === 2 &&
+                        data[field] === value,
+                    )
+                    .slice(0, limitValue)
+                    .map(([path, data]) => ({
+                      id: path.split("/")[1],
+                      ref: { path },
+                      data() {
+                        return customClone(data);
+                      },
+                    }));
+                  return { empty: docs.length === 0, docs };
+                },
+              };
+            },
+          };
+        },
         doc(docId) {
           const finalId = docId || `mock-id-${Math.random().toString(36).substring(2, 9)}`;
           const path = `${collectionName}/${finalId}`;
@@ -138,6 +165,34 @@ const sampleQuestionInput = {
   authorUid: "author-1",
   reviewerUid: "reviewer-1",
   status: "approved",
+};
+
+const sampleBlueprintInput = {
+  programId: "general-english-cefr",
+  frameworkVersion: "2020",
+  levelId: "a1",
+  title: "English A1 Mock Exam",
+  sections: [
+    {
+      id: "reading-sec",
+      title: "Reading Comprehension",
+      order: 1,
+      durationSeconds: 600,
+      slots: [
+        {
+          skill: "reading",
+          interactionTypes: ["single_choice"],
+          difficultyRange: ["a1"],
+          questionCount: 5,
+          points: 10,
+        },
+      ],
+    },
+  ],
+  durationSeconds: 600,
+  scoringStrategy: "sum",
+  scoringVersion: "1.0.0",
+  status: "published",
 };
 
 test("assessment repository: getQuestion returns null when question does not exist", async () => {
@@ -257,38 +312,31 @@ test("assessment repository: saveBlueprint and getBlueprint", async () => {
   const db = createMockDb();
   const repo = createAssessmentRepository(db);
 
-  const blueprintInput = {
-    programId: "general-english-cefr",
-    frameworkVersion: "2020",
-    levelId: "a1",
-    title: "English A1 Mock Exam",
-    sections: [
-      {
-        id: "reading-sec",
-        title: "Reading Comprehension",
-        order: 1,
-        durationSeconds: 600,
-        slots: [
-          {
-            skill: "reading",
-            interactionTypes: ["single_choice"],
-            difficultyRange: ["a1"],
-            questionCount: 5,
-            points: 10,
-          },
-        ],
-      },
-    ],
-    durationSeconds: 600,
-    scoringStrategy: "sum",
-    scoringVersion: "1.0.0",
-    status: "published",
-  };
-
-  const saved = await repo.saveBlueprint("blueprint-1", blueprintInput);
+  const saved = await repo.saveBlueprint("blueprint-1", sampleBlueprintInput);
   assert.equal(saved.id, "blueprint-1");
 
   const fetched = await repo.getBlueprint("blueprint-1");
   assert.ok(fetched);
   assert.equal(fetched.title, "English A1 Mock Exam");
+});
+
+test("assessment repository: listPublishedBlueprints excludes draft exams", async () => {
+  const db = createMockDb({
+    "examBlueprints/blueprint-published": {
+      ...sampleBlueprintInput,
+      schemaVersion: 1,
+      id: "blueprint-published",
+    },
+    "examBlueprints/blueprint-draft": {
+      ...sampleBlueprintInput,
+      schemaVersion: 1,
+      id: "blueprint-draft",
+      status: "draft",
+    },
+  });
+  const repo = createAssessmentRepository(db);
+
+  const blueprints = await repo.listPublishedBlueprints();
+
+  assert.deepEqual(blueprints.map(({ id }) => id), ["blueprint-published"]);
 });

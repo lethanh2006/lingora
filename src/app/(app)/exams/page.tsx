@@ -7,26 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS, USER_SUBCOLLECTIONS } from "@/lib/firebase/collections.ts";
-import { seedMockExamData } from "@/features/assessment/seed-mock.ts";
+import { createAssessmentRepository } from "@/features/assessment/assessment.repository.ts";
 import { attemptSchema } from "@/features/assessment/schemas/assessment.schema.ts";
 
 export default async function ExamsPage() {
   const user = await requireUser();
   const db = getAdminDb();
+  const assessmentRepository = createAssessmentRepository(db);
 
-  // Make sure we have mock exam data seeded
-  await seedMockExamData(db);
-
-  // 1. Fetch published blueprints
-  const blueprintsSnap = await db
-    .collection(COLLECTIONS.examBlueprints)
-    .where("status", "==", "published")
-    .get();
-
-  const blueprints = blueprintsSnap.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as any[];
+  const blueprints = await assessmentRepository.listPublishedBlueprints();
 
   // 2. Fetch user's previous/active exam attempts
   const attemptsSnap = await db
@@ -34,15 +23,13 @@ export default async function ExamsPage() {
     .doc(user.uid)
     .collection(USER_SUBCOLLECTIONS.attempts)
     .orderBy("createdAt", "desc")
+    .limit(20)
     .get();
 
-  const attempts = attemptsSnap.docs.map((doc) => {
-    try {
-      return attemptSchema.parse(doc.data());
-    } catch (err) {
-      return null;
-    }
-  }).filter(Boolean) as any[];
+  const attempts = attemptsSnap.docs.flatMap((document) => {
+    const result = attemptSchema.safeParse(document.data());
+    return result.success ? [result.data] : [];
+  });
 
   // Separate active (in_progress) from completed attempts
   const activeAttempts = attempts.filter((a) => a.state === "in_progress");
@@ -107,52 +94,66 @@ export default async function ExamsPage() {
         <h2 className="text-2xl font-bold tracking-tight text-foreground">
           Các bài thi có sẵn
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {blueprints.map((blueprint) => {
-            const sectionsCount = blueprint.sections?.length || 0;
-            const durationMins = Math.round(blueprint.durationSeconds / 60);
+        {blueprints.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+              <FileText className="size-10 text-muted-foreground" />
+              <div>
+                <h3 className="font-semibold">Chưa có bài thi được phát hành</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Các bài thi đã duyệt sẽ xuất hiện tại đây.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {blueprints.map((blueprint) => {
+              const sectionsCount = blueprint.sections.length;
+              const durationMins = Math.round(blueprint.durationSeconds / 60);
 
-            return (
-              <Card key={blueprint.id} className="flex flex-col justify-between hover:shadow-lg hover:border-primary/20 transition-all duration-300">
-                <CardHeader>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 uppercase">
-                      {blueprint.levelId}
-                    </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                      CEFR
-                    </span>
-                  </div>
-                  <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">
-                    {blueprint.title}
-                  </CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    Bài thi đánh giá cấp độ {blueprint.levelId.toUpperCase()} chính thức của Lingora.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-4">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground border-y py-3">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="size-4" />
-                      <span>{durationMins} phút</span>
+              return (
+                <Card key={blueprint.id} className="flex flex-col justify-between hover:shadow-lg hover:border-primary/20 transition-all duration-300">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 uppercase">
+                        {blueprint.levelId}
+                      </span>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        CEFR
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <FileText className="size-4" />
-                      <span>{sectionsCount} phần thi</span>
+                    <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">
+                      {blueprint.title}
+                    </CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      Bài thi đánh giá cấp độ {blueprint.levelId.toUpperCase()} chính thức của Lingora.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-4">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground border-y py-3">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="size-4" />
+                        <span>{durationMins} phút</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="size-4" />
+                        <span>{sectionsCount} phần thi</span>
+                      </div>
                     </div>
-                  </div>
-                  <Link
-                    href={`/exams/${blueprint.id}`}
-                    className="flex w-full items-center justify-center h-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold transition-all gap-2"
-                  >
-                    <span>Xem chi tiết</span>
-                    <ArrowRight className="size-4" />
-                  </Link>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    <Link
+                      href={`/exams/${blueprint.id}`}
+                      className="flex w-full items-center justify-center h-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold transition-all gap-2"
+                    >
+                      <span>Xem chi tiết</span>
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Past Attempts */}

@@ -9,6 +9,7 @@ import {
   type ExamBlueprint,
   ASSESSMENT_SCHEMA_VERSION,
 } from "./schemas/assessment.schema.ts";
+import { ASSESSMENT_QUERY_CARDS } from "./query-cards.ts";
 
 export function createAssessmentRepository(db: Firestore) {
   return {
@@ -120,6 +121,22 @@ export function createAssessmentRepository(db: Firestore) {
       const snap = await db.collection(COLLECTIONS.examBlueprints).doc(blueprintId).get();
       if (!snap.exists) return null;
       return examBlueprintSchema.parse(snap.data());
+    },
+
+    async listPublishedBlueprints(): Promise<ExamBlueprint[]> {
+      const snapshot = await db
+        .collection(COLLECTIONS.examBlueprints)
+        .where("status", "==", "published")
+        .limit(ASSESSMENT_QUERY_CARDS.listPublishedBlueprints.limit)
+        .get();
+
+      return snapshot.docs.map((document) => {
+        const blueprint = examBlueprintSchema.parse(document.data());
+        if (blueprint.id !== document.id) {
+          throw new Error(`Blueprint ${document.ref.path} có field id không khớp path`);
+        }
+        return blueprint;
+      });
     },
 
     async saveBlueprint(
