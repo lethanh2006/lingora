@@ -121,18 +121,31 @@ function createMockDb(initialData = {}) {
       return makeCollection(collectionName);
     },
     async runTransaction(fn) {
+      const pendingWrites = [];
       const transaction = {
         async get(ref) {
           return ref.get();
         },
         set(ref, data) {
-          ref.set(data);
+          pendingWrites.push({ type: "set", path: ref.path, data: customClone(data) });
         },
         update(ref, data) {
-          ref.update(data);
+          pendingWrites.push({ type: "update", path: ref.path, data: customClone(data) });
         },
       };
-      return fn(transaction);
+      const result = await fn(transaction);
+
+      for (const write of pendingWrites) {
+        if (write.type === "set") {
+          store.set(write.path, write.data);
+          continue;
+        }
+
+        const current = store.get(write.path) || {};
+        store.set(write.path, { ...current, ...write.data });
+      }
+
+      return result;
     },
   };
 }
@@ -409,9 +422,15 @@ test("attempt service: saveSectionAnswers rejects when expired", async () => {
     );
   }, /Attempt has expired and cannot accept further updates/);
 
-  // Check state became expired
   const stored = db.store.get("users/user-1/attempts/attempt-expired");
   assert.equal(stored.state, "expired");
+  assert.notEqual(stored.submittedAt, null);
+
+  const storedSection = db.store.get(
+    "users/user-1/attempts/attempt-expired/sections/reading-sec"
+  );
+  assert.deepEqual(storedSection.answers, {});
+  assert.equal(storedSection.serverRevision, 0);
 });
 
 test("attempt service: submitAndGradeAttempt calculates scores correctly", async () => {

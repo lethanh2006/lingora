@@ -186,7 +186,7 @@ export function createAttemptService(db: Firestore) {
 
       const sectionRef = attemptRef.collection(USER_SUBCOLLECTIONS.sections).doc(sectionId);
 
-      return db.runTransaction(async (transaction) => {
+      const result = await db.runTransaction(async (transaction) => {
         const attemptSnap = await transaction.get(attemptRef);
         if (!attemptSnap.exists) {
           throw new Error("Attempt not found");
@@ -198,17 +198,14 @@ export function createAttemptService(db: Firestore) {
         }
 
         if (getMillis(attempt.expiresAt) <= getMillis(now)) {
-          // Attempt has expired! Automatically mark as expired and grade it.
-          // Since we are in transaction, we can update state immediately.
-          const nextState = "expired";
-          const updatedAttempt = {
+          const updatedAttempt: Attempt = {
             ...attempt,
-            state: nextState as any,
+            state: "expired",
             submittedAt: now,
             updatedAt: now,
           };
           transaction.set(attemptRef, attemptSchema.parse(updatedAttempt));
-          throw new Error("Attempt has expired and cannot accept further updates");
+          return { status: "expired" } as const;
         }
 
         const sectionSnap = await transaction.get(sectionRef);
@@ -240,8 +237,14 @@ export function createAttemptService(db: Firestore) {
         transaction.set(sectionRef, attemptSectionSchema.parse(nextSection));
         transaction.update(attemptRef, { updatedAt: now });
 
-        return nextSection;
+        return { status: "saved", section: nextSection } as const;
       });
+
+      if (result.status === "expired") {
+        throw new Error("Attempt has expired and cannot accept further updates");
+      }
+
+      return result.section;
     },
 
     async submitAndGradeAttempt(
