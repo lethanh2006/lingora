@@ -85,10 +85,13 @@ export default async function AdminQuestionsPage() {
             <p className="text-sm text-muted-foreground">{questions.length} câu hỏi</p>
           </div>
         </div>
-        {/* Future: Add new question button would go here */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground italic">Thêm câu hỏi qua seed script</span>
-        </div>
+        <Link
+          href="/admin/questions/new"
+          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold shadow-sm transition-all"
+        >
+          <Plus className="size-4" />
+          Thêm câu hỏi
+        </Link>
       </div>
 
       {/* Type summary chips */}

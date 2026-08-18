@@ -85,21 +85,29 @@ export default async function AdminQuestionDetailPage({ params }: QuestionDetail
       </Link>
 
       {/* Header */}
-      <div className="flex items-start gap-4">
-        <div className="size-12 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0">
-          <HelpCircle className="size-6" />
-        </div>
-        <div className="space-y-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-extrabold text-foreground">Câu hỏi: {questionId}</h1>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${STATUS_COLORS[question.status] || STATUS_COLORS.draft}`}>
-              {question.status}
-            </span>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="size-12 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0">
+            <HelpCircle className="size-6" />
           </div>
-          <p className="text-sm text-muted-foreground font-mono">
-            Latest version: <strong>{question.latestVersionId}</strong>
-          </p>
+          <div className="space-y-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-extrabold text-foreground">Câu hỏi: {questionId}</h1>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${STATUS_COLORS[question.status] || STATUS_COLORS.draft}`}>
+                {question.status}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground font-mono">
+              Latest version: <strong>{question.latestVersionId}</strong>
+            </p>
+          </div>
         </div>
+        <Link
+          href={`/admin/questions/${questionId}/edit`}
+          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border-2 hover:bg-muted text-sm font-semibold shadow-sm transition-all"
+        >
+          Chỉnh sửa câu hỏi
+        </Link>
       </div>
 
       {/* Latest Version Card */}
