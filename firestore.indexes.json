@@ -111,6 +111,15 @@
         { "fieldPath": "lessonId", "order": "ASCENDING" },
         { "fieldPath": "revisionNumber", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "examFormVersions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "blueprintId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

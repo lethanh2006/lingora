@@ -4,9 +4,11 @@ import {
   questionSchema,
   questionVersionSchema,
   examBlueprintSchema,
+  examFormVersionSchema,
   type Question,
   type QuestionVersion,
   type ExamBlueprint,
+  type ExamFormVersion,
   ASSESSMENT_SCHEMA_VERSION,
 } from "./schemas/assessment.schema.ts";
 import { ASSESSMENT_QUERY_CARDS } from "./query-cards.ts";
@@ -148,6 +150,26 @@ export function createAssessmentRepository(db: Firestore) {
         }
         return blueprint;
       });
+    },
+
+    async getLatestPublishedFormVersion(
+      blueprintId: string,
+    ): Promise<ExamFormVersion | null> {
+      const snapshot = await db
+        .collection(COLLECTIONS.examFormVersions)
+        .where("blueprintId", "==", blueprintId)
+        .where("status", "==", "published")
+        .orderBy("publishedAt", "desc")
+        .limit(ASSESSMENT_QUERY_CARDS.getLatestPublishedFormVersion.limit)
+        .get();
+      if (snapshot.empty) return null;
+
+      const document = snapshot.docs[0];
+      const formVersion = examFormVersionSchema.parse(document.data());
+      if (formVersion.id !== document.id) {
+        throw new Error(`Exam form ${document.ref.path} có field id không khớp path`);
+      }
+      return formVersion;
     },
 
     async saveBlueprint(

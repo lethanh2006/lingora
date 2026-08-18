@@ -17,4 +17,13 @@ export const ASSESSMENT_QUERY_CARDS = {
     limit: 1,
     readBudget: 1,
   },
+  getLatestPublishedFormVersion: {
+    id: "Q-ASM-03",
+    useCase: "Chọn form exam mới nhất khi bắt đầu attempt",
+    collection: "examFormVersions",
+    filters: ["blueprintId ==", "status == published"],
+    orderBy: ["publishedAt desc"],
+    limit: 1,
+    readBudget: 1,
+  },
 } as const;

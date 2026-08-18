@@ -30,33 +30,57 @@ function createMockDb(initialData = {}) {
   const db = {
     store,
     collection(collectionName) {
+      function createQuery(filters) {
+        let order = null;
+        let limitValue = Number.POSITIVE_INFINITY;
+        const query = {
+          where(field, operator, value) {
+            assert.equal(operator, "==");
+            filters.push([field, value]);
+            return query;
+          },
+          orderBy(field, direction) {
+            order = { field, direction };
+            return query;
+          },
+          limit(value) {
+            limitValue = value;
+            return query;
+          },
+          async get() {
+            const matchingEntries = [...store.entries()].filter(
+              ([path, data]) =>
+                path.startsWith(`${collectionName}/`) &&
+                path.split("/").length === 2 &&
+                filters.every(([field, value]) => data[field] === value),
+            );
+            if (order) {
+              const multiplier = order.direction === "desc" ? -1 : 1;
+              matchingEntries.sort(([, left], [, right]) => {
+                const leftValue = left[order.field];
+                const rightValue = right[order.field];
+                const leftComparable = leftValue?.seconds ?? leftValue;
+                const rightComparable = rightValue?.seconds ?? rightValue;
+                return (leftComparable - rightComparable) * multiplier;
+              });
+            }
+            const docs = matchingEntries.slice(0, limitValue).map(([path, data]) => ({
+              id: path.split("/")[1],
+              ref: { path },
+              data() {
+                return customClone(data);
+              },
+            }));
+            return { empty: docs.length === 0, docs };
+          },
+        };
+        return query;
+      }
+
       return {
         where(field, operator, value) {
           assert.equal(operator, "==");
-          return {
-            limit(limitValue) {
-              return {
-                async get() {
-                  const docs = [...store.entries()]
-                    .filter(
-                      ([path, data]) =>
-                        path.startsWith(`${collectionName}/`) &&
-                        path.split("/").length === 2 &&
-                        data[field] === value,
-                    )
-                    .slice(0, limitValue)
-                    .map(([path, data]) => ({
-                      id: path.split("/")[1],
-                      ref: { path },
-                      data() {
-                        return customClone(data);
-                      },
-                    }));
-                  return { empty: docs.length === 0, docs };
-                },
-              };
-            },
-          };
+          return createQuery([[field, value]]);
         },
         doc(docId) {
           const finalId = docId || `mock-id-${Math.random().toString(36).substring(2, 9)}`;
@@ -193,6 +217,18 @@ const sampleBlueprintInput = {
   scoringStrategy: "sum",
   scoringVersion: "1.0.0",
   status: "published",
+};
+
+const sampleFormVersion = {
+  schemaVersion: 1,
+  id: "form-version-1",
+  blueprintId: "blueprint-1",
+  blueprintVersion: 1,
+  orderedQuestionVersionIds: ["question-version-1"],
+  publicSectionSnapshots: [{ id: "reading-sec", questions: [] }],
+  checksum: "a".repeat(64),
+  status: "published",
+  publishedAt: timestamp,
 };
 
 test("assessment repository: getQuestion returns null when question does not exist", async () => {
@@ -362,4 +398,33 @@ test("assessment repository: getPublishedBlueprint hides draft exams", async () 
 
   assert.equal(published?.id, "blueprint-published");
   assert.equal(draft, null);
+});
+
+test("assessment repository: getLatestPublishedFormVersion returns newest form", async () => {
+  const db = createMockDb({
+    "examFormVersions/form-version-old": {
+      ...sampleFormVersion,
+      id: "form-version-old",
+      publishedAt: new Timestamp(timestamp.seconds - 100, 0),
+    },
+    "examFormVersions/form-version-new": {
+      ...sampleFormVersion,
+      id: "form-version-new",
+      blueprintVersion: 2,
+      publishedAt: new Timestamp(timestamp.seconds + 100, 0),
+    },
+    "examFormVersions/form-version-draft": {
+      ...sampleFormVersion,
+      id: "form-version-draft",
+      blueprintVersion: 3,
+      status: "draft",
+      publishedAt: new Timestamp(timestamp.seconds + 200, 0),
+    },
+  });
+  const repo = createAssessmentRepository(db);
+
+  const formVersion = await repo.getLatestPublishedFormVersion("blueprint-1");
+
+  assert.equal(formVersion?.id, "form-version-new");
+  assert.equal(formVersion?.blueprintVersion, 2);
 });
