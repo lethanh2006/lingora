@@ -26,4 +26,13 @@ export const ASSESSMENT_QUERY_CARDS = {
     limit: 1,
     readBudget: 1,
   },
+  findActiveAttempt: {
+    id: "Q-ASM-04",
+    useCase: "Resume lượt thi đang làm của user theo blueprint",
+    path: "users/{uid}/attempts",
+    filters: ["blueprintId ==", "state == in_progress"],
+    orderBy: [],
+    limit: 1,
+    readBudget: 1,
+  },
 } as const;

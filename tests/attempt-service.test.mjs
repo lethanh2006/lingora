@@ -267,14 +267,20 @@ test("attempt service: startAttempt returns active attempt if exists and not exp
   });
   const service = createAttemptService(db);
 
-  const { attempt } = await service.startAttempt(
+  const { attempt, formVersion } = await service.startAttempt(
     "user-1",
     sampleBlueprint,
-    sampleFormVersion,
+    {
+      ...sampleFormVersion,
+      id: "form-version-2",
+      blueprintVersion: 2,
+    },
   );
 
   assert.equal(attempt.id, "attempt-active");
   assert.equal(attempt.state, "in_progress");
+  assert.equal(attempt.examFormVersionId, "form-version-1");
+  assert.equal(formVersion.id, "form-version-1");
 });
 
 test("attempt service: startAttempt rejects an unrelated or unpublished form", async () => {

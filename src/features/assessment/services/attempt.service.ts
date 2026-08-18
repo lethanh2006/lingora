@@ -12,6 +12,7 @@ import {
   type QuestionVersion,
   ASSESSMENT_SCHEMA_VERSION,
 } from "../schemas/assessment.schema.ts";
+import { ASSESSMENT_QUERY_CARDS } from "../query-cards.ts";
 
 function getMillis(ts: { seconds: number; nanoseconds: number }): number {
   return ts.seconds * 1000 + Math.floor(ts.nanoseconds / 1000000);
@@ -72,7 +73,7 @@ export function createAttemptService(db: Firestore) {
       const activeQuery = await attemptsColl
         .where("blueprintId", "==", blueprint.id)
         .where("state", "==", "in_progress")
-        .limit(1)
+        .limit(ASSESSMENT_QUERY_CARDS.findActiveAttempt.limit)
         .get();
 
       const now = Timestamp.now();
@@ -96,6 +97,9 @@ export function createAttemptService(db: Firestore) {
             throw new Error("Exam form version not found for active attempt");
           }
           const activeFormVersion = examFormVersionSchema.parse(formSnap.data());
+          if (activeFormVersion.id !== formSnap.id) {
+            throw new Error("Active exam form field id does not match its document id");
+          }
           return { attempt, formVersion: activeFormVersion };
         }
       }
