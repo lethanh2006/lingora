@@ -1,11 +1,10 @@
 import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Award, ShieldAlert, BookOpen, AlertCircle } from "lucide-react";
+import { ArrowLeft, Clock, Award, ShieldAlert, BookOpen } from "lucide-react";
 
 import { getAdminDb } from "@/lib/firebase/admin";
-import { COLLECTIONS } from "@/lib/firebase/collections.ts";
-import { examBlueprintSchema } from "@/features/assessment/schemas/assessment.schema.ts";
+import { createAssessmentRepository } from "@/features/assessment/assessment.repository.ts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StartExamButton } from "./start-button.tsx";
 
@@ -16,19 +15,16 @@ interface ExamDetailPageProps {
 export default async function ExamDetailPage({ params }: ExamDetailPageProps) {
   const { blueprintId } = await params;
   const db = getAdminDb();
-
-  const blueprintSnap = await db.collection(COLLECTIONS.examBlueprints).doc(blueprintId).get();
-  if (!blueprintSnap.exists) {
-    notFound();
-  }
+  const assessmentRepository = createAssessmentRepository(db);
 
   let blueprint;
   try {
-    blueprint = examBlueprintSchema.parse(blueprintSnap.data());
-  } catch (err) {
-    console.error("Invalid blueprint schema in DB", err);
+    blueprint = await assessmentRepository.getPublishedBlueprint(blueprintId);
+  } catch (error) {
+    console.error("Invalid blueprint schema in DB", error);
     notFound();
   }
+  if (!blueprint) notFound();
 
   const durationMins = Math.round(blueprint.durationSeconds / 60);
 

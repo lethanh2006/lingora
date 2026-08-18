@@ -340,3 +340,26 @@ test("assessment repository: listPublishedBlueprints excludes draft exams", asyn
 
   assert.deepEqual(blueprints.map(({ id }) => id), ["blueprint-published"]);
 });
+
+test("assessment repository: getPublishedBlueprint hides draft exams", async () => {
+  const db = createMockDb({
+    "examBlueprints/blueprint-published": {
+      ...sampleBlueprintInput,
+      schemaVersion: 1,
+      id: "blueprint-published",
+    },
+    "examBlueprints/blueprint-draft": {
+      ...sampleBlueprintInput,
+      schemaVersion: 1,
+      id: "blueprint-draft",
+      status: "draft",
+    },
+  });
+  const repo = createAssessmentRepository(db);
+
+  const published = await repo.getPublishedBlueprint("blueprint-published");
+  const draft = await repo.getPublishedBlueprint("blueprint-draft");
+
+  assert.equal(published?.id, "blueprint-published");
+  assert.equal(draft, null);
+});

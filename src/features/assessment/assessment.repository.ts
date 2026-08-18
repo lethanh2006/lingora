@@ -123,6 +123,17 @@ export function createAssessmentRepository(db: Firestore) {
       return examBlueprintSchema.parse(snap.data());
     },
 
+    async getPublishedBlueprint(blueprintId: string): Promise<ExamBlueprint | null> {
+      const snap = await db.collection(COLLECTIONS.examBlueprints).doc(blueprintId).get();
+      if (!snap.exists) return null;
+
+      const blueprint = examBlueprintSchema.parse(snap.data());
+      if (blueprint.id !== snap.id) {
+        throw new Error(`Blueprint ${snap.ref.path} có field id không khớp path`);
+      }
+      return blueprint.status === "published" ? blueprint : null;
+    },
+
     async listPublishedBlueprints(): Promise<ExamBlueprint[]> {
       const snapshot = await db
         .collection(COLLECTIONS.examBlueprints)

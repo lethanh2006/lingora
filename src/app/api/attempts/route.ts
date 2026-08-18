@@ -3,7 +3,8 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { COLLECTIONS } from "@/lib/firebase/collections.ts";
-import { examBlueprintSchema } from "@/features/assessment/schemas/assessment.schema.ts";
+import { examFormVersionSchema } from "@/features/assessment/schemas/assessment.schema.ts";
+import { createAssessmentRepository } from "@/features/assessment/assessment.repository.ts";
 import { createAttemptService } from "@/features/assessment/services/attempt.service.ts";
 
 const startAttemptInputSchema = z.object({
@@ -21,12 +22,9 @@ export async function POST(request: Request) {
     const { blueprintId } = startAttemptInputSchema.parse(JSON.parse(body));
 
     const db = getAdminDb();
-    const blueprintSnap = await db.collection(COLLECTIONS.examBlueprints).doc(blueprintId).get();
-    if (!blueprintSnap.exists) {
-      return jsonError("Blueprint not found", 404);
-    }
-
-    const blueprint = examBlueprintSchema.parse(blueprintSnap.data());
+    const assessmentRepository = createAssessmentRepository(db);
+    const blueprint = await assessmentRepository.getPublishedBlueprint(blueprintId);
+    if (!blueprint) return jsonError("Published blueprint not found", 404);
 
     // Fetch the latest published form version to get its blueprintVersion
     const formsSnap = await db
@@ -40,8 +38,8 @@ export async function POST(request: Request) {
       return jsonError("No published exam form versions found for this blueprint", 404);
     }
 
-    const formVersion = formsSnap.docs[0].data() as any;
-    const blueprintVersion = formVersion.blueprintVersion || 1;
+    const formVersion = examFormVersionSchema.parse(formsSnap.docs[0].data());
+    const blueprintVersion = formVersion.blueprintVersion;
 
     const attemptService = createAttemptService(db);
     const { attempt, formVersion: finalFormVersion } = await attemptService.startAttempt(
