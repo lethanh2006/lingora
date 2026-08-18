@@ -3,6 +3,7 @@ import { COLLECTIONS, USER_SUBCOLLECTIONS } from "../../../lib/firebase/collecti
 import {
   attemptSchema,
   attemptSectionSchema,
+  examFormVersionSchema,
   questionVersionSchema,
   type Attempt,
   type AttemptSection,
@@ -60,7 +61,7 @@ export function createAttemptService(db: Firestore) {
     async startAttempt(
       userId: string,
       blueprint: ExamBlueprint,
-      blueprintVersion: number
+      selectedFormVersion: ExamFormVersion,
     ): Promise<{ attempt: Attempt; formVersion: ExamFormVersion }> {
       const attemptsColl = db
         .collection(COLLECTIONS.users)
@@ -94,25 +95,18 @@ export function createAttemptService(db: Firestore) {
           if (!formSnap.exists) {
             throw new Error("Exam form version not found for active attempt");
           }
-          const formVersion = formSnap.data() as ExamFormVersion;
-          return { attempt, formVersion };
+          const activeFormVersion = examFormVersionSchema.parse(formSnap.data());
+          return { attempt, formVersion: activeFormVersion };
         }
       }
 
-      // Fetch a published form version for this blueprint
-      const formSnap = await db
-        .collection(COLLECTIONS.examFormVersions)
-        .where("blueprintId", "==", blueprint.id)
-        .where("blueprintVersion", "==", blueprintVersion)
-        .where("status", "==", "published")
-        .limit(1)
-        .get();
-
-      if (formSnap.empty) {
-        throw new Error("No published exam form version found for this blueprint");
+      const formVersion = examFormVersionSchema.parse(selectedFormVersion);
+      if (formVersion.blueprintId !== blueprint.id) {
+        throw new Error("Exam form version does not belong to the selected blueprint");
       }
-
-      const formVersion = formSnap.docs[0].data() as ExamFormVersion;
+      if (formVersion.status !== "published") {
+        throw new Error("Exam form version is not published");
+      }
 
       // Create new attempt
       const attemptId = db

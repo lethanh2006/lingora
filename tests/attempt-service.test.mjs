@@ -36,13 +36,17 @@ function createMockDb(initialData = {}) {
         return makeDoc(docPath, finalId);
       },
       where(field, op, val) {
+        assert.equal(op, "==");
         const filters = [[field, op, val]];
+        let resultLimit = Number.POSITIVE_INFINITY;
         const query = {
           where(f, o, v) {
+            assert.equal(o, "==");
             filters.push([f, o, v]);
             return query;
           },
-          limit(n) {
+          limit(value) {
+            resultLimit = value;
             return query;
           },
           async get() {
@@ -55,7 +59,7 @@ function createMockDb(initialData = {}) {
               if (parentPath !== collectionPath) continue;
 
               let matches = true;
-              for (const [f, o, v] of filters) {
+              for (const [f, , v] of filters) {
                 if (item[f] !== v) {
                   matches = false;
                   break;
@@ -69,6 +73,7 @@ function createMockDb(initialData = {}) {
                     return customClone(item);
                   },
                 });
+                if (docs.length >= resultLimit) break;
               }
             }
             return {
@@ -211,12 +216,14 @@ const sampleQuestionVersion = {
 };
 
 test("attempt service: startAttempt creates a new attempt", async () => {
-  const db = createMockDb({
-    "examFormVersions/form-version-1": sampleFormVersion,
-  });
+  const db = createMockDb();
   const service = createAttemptService(db);
 
-  const { attempt, formVersion } = await service.startAttempt("user-1", sampleBlueprint, 1);
+  const { attempt, formVersion } = await service.startAttempt(
+    "user-1",
+    sampleBlueprint,
+    sampleFormVersion,
+  );
 
   assert.equal(attempt.uid, "user-1");
   assert.equal(attempt.state, "in_progress");
@@ -260,10 +267,34 @@ test("attempt service: startAttempt returns active attempt if exists and not exp
   });
   const service = createAttemptService(db);
 
-  const { attempt } = await service.startAttempt("user-1", sampleBlueprint, 1);
+  const { attempt } = await service.startAttempt(
+    "user-1",
+    sampleBlueprint,
+    sampleFormVersion,
+  );
 
   assert.equal(attempt.id, "attempt-active");
   assert.equal(attempt.state, "in_progress");
+});
+
+test("attempt service: startAttempt rejects an unrelated or unpublished form", async () => {
+  const db = createMockDb();
+  const service = createAttemptService(db);
+
+  await assert.rejects(
+    service.startAttempt("user-1", sampleBlueprint, {
+      ...sampleFormVersion,
+      blueprintId: "another-blueprint",
+    }),
+    /does not belong to the selected blueprint/,
+  );
+  await assert.rejects(
+    service.startAttempt("user-1", sampleBlueprint, {
+      ...sampleFormVersion,
+      status: "draft",
+    }),
+    /is not published/,
+  );
 });
 
 test("attempt service: saveSectionAnswers saves answers and detects stale revisions", async () => {

@@ -29,13 +29,11 @@ export async function POST(request: Request) {
       return jsonError("No published exam form versions found for this blueprint", 404);
     }
 
-    const blueprintVersion = formVersion.blueprintVersion;
-
     const attemptService = createAttemptService(db);
     const { attempt, formVersion: finalFormVersion } = await attemptService.startAttempt(
       user.uid,
       blueprint,
-      blueprintVersion
+      formVersion,
     );
 
     return Response.json({ attempt, formVersion: finalFormVersion });
