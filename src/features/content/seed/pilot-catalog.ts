@@ -2,7 +2,6 @@ import {
   languageSchema,
   programSchema,
   type Language,
-  type Program,
   courseSchema,
   unitDraftSchema,
   lessonDraftSchema,
@@ -12,20 +11,34 @@ import {
 import { contentMediaSchema } from "../schemas/media.schema.ts";
 import { questionSchema, questionVersionSchema, examBlueprintSchema, examFormVersionSchema } from "../../assessment/schemas/assessment.schema.ts";
 import { COLLECTIONS } from "../../../lib/firebase/collections.ts";
+import type { DocumentData } from "firebase-admin/firestore";
 
 type SeedTimestamp = Language["createdAt"];
 
-export type PilotSeedDocument =
-  | {
-      collection: typeof COLLECTIONS.languages;
-      id: Language["id"];
-      data: Language;
-    }
-  | {
-      collection: typeof COLLECTIONS.programs;
-      id: string;
-      data: Program;
-    };
+type PilotQuestionOption = {
+  id: string;
+  text: string;
+};
+
+type PilotExamSectionSnapshot = {
+  id: string;
+  title: string;
+  order: number;
+  durationSeconds: number;
+  questions: Array<{
+    id: string;
+    questionId: string;
+    interactionType: string;
+    promptBlocks: Array<{ type: "text"; content: string }>;
+    options: PilotQuestionOption[];
+  }>;
+};
+
+export type PilotSeedDocument = {
+  collection: (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
+  id: string;
+  data: DocumentData;
+};
 
 export type PilotSeedStore = {
   createIfMissing(document: PilotSeedDocument): Promise<boolean>;
@@ -35,6 +48,16 @@ export type PilotSeedResult = {
   created: string[];
   skipped: string[];
 };
+
+async function seedDocument(
+  store: PilotSeedStore,
+  result: PilotSeedResult,
+  document: PilotSeedDocument,
+) {
+  const path = `${document.collection}/${document.id}`;
+  if (await store.createIfMissing(document)) result.created.push(path);
+  else result.skipped.push(path);
+}
 
 export function createPilotCatalogSeed(timestamp: SeedTimestamp): PilotSeedDocument[] {
   const languages = [
@@ -154,9 +177,7 @@ export async function seedPilotCatalog(
   const result: PilotSeedResult = { created: [], skipped: [] };
 
   for (const document of createPilotCatalogSeed(timestamp)) {
-    const path = `${document.collection}/${document.id}`;
-    if (await store.createIfMissing(document)) result.created.push(path);
-    else result.skipped.push(path);
+    await seedDocument(store, result, document);
   }
 
   return result;
@@ -166,15 +187,15 @@ export async function seedPilotCatalog(
 // NEW: Seeding for Pilot Content & Exams (Phase 8)
 // -------------------------------------------------------------
 
-export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
+export async function seedPilotContent(
+  store: PilotSeedStore,
+  timestamp: SeedTimestamp,
+): Promise<PilotSeedResult> {
   console.log("  - Starting seedPilotContent...");
-  const setDoc = async (ref: any, data: any) => {
-    await ref.set(data);
-  };
+  const result: PilotSeedResult = { created: [], skipped: [] };
 
   // 1. Seed Source Attribution
   console.log("  - Seeding source attribution...");
-  const sourceRef = db.collection(COLLECTIONS.contentSources).doc("source-1");
   const sourceData = sourceAttributionSchema.parse({
     id: "source-1",
     title: "Lingora Reference Content",
@@ -184,13 +205,16 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
     licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
     attributionText: "Lingora reference content, CC BY 4.0.",
   });
-  await setDoc(sourceRef, sourceData);
+  await seedDocument(store, result, {
+    collection: COLLECTIONS.contentSources,
+    id: "source-1",
+    data: sourceData,
+  });
 
   // 2. Seed Media files for audio choices
   console.log("  - Seeding media...");
   const mediaIds = ["audio-en-hello", "audio-ja-konnichiwa", "audio-zh-nihao"];
   for (const mediaId of mediaIds) {
-    const mediaRef = db.collection(COLLECTIONS.contentMedia).doc(mediaId);
     const mediaData = contentMediaSchema.parse({
       schemaVersion: 1,
       id: mediaId,
@@ -199,7 +223,11 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
       sizeBytes: 12345,
       checksum: "a".repeat(64),
     });
-    await setDoc(mediaRef, mediaData);
+    await seedDocument(store, result, {
+      collection: COLLECTIONS.contentMedia,
+      id: mediaId,
+      data: mediaData,
+    });
   }
 
   // 3. Seed Lexemes (Vocabulary)
@@ -237,15 +265,18 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
   ];
 
   for (const lex of lexemesList) {
-    const ref = db.collection(COLLECTIONS.lexemes).doc(lex.id);
-    await setDoc(ref, {
-      term: lex.term,
-      meaningVi: lex.meaningVi,
-      pronunciation: lex.pronunciation,
-      example: lex.example,
-      mediaRefs: [],
-      createdAt: timestamp,
-      updatedAt: timestamp,
+    await seedDocument(store, result, {
+      collection: COLLECTIONS.lexemes,
+      id: lex.id,
+      data: {
+        term: lex.term,
+        meaningVi: lex.meaningVi,
+        pronunciation: lex.pronunciation,
+        example: lex.example,
+        mediaRefs: [],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
     });
   }
 
@@ -258,7 +289,6 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
   ];
 
   for (const c of courses) {
-    const ref = db.collection(COLLECTIONS.contentCourses).doc(c.id);
     const data = courseSchema.parse({
       schemaVersion: 1,
       id: c.id,
@@ -274,7 +304,11 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
       createdAt: timestamp,
       updatedAt: timestamp,
     });
-    await setDoc(ref, data);
+    await seedDocument(store, result, {
+      collection: COLLECTIONS.contentCourses,
+      id: c.id,
+      data,
+    });
   }
 
   // 5. Seed Unit Drafts
@@ -286,7 +320,6 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
   ];
 
   for (const u of units) {
-    const ref = db.collection(COLLECTIONS.contentUnits).doc(u.id);
     const data = unitDraftSchema.parse({
       schemaVersion: 1,
       id: u.id,
@@ -298,7 +331,11 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
       createdAt: timestamp,
       updatedAt: timestamp,
     });
-    await setDoc(ref, data);
+    await seedDocument(store, result, {
+      collection: COLLECTIONS.contentUnits,
+      id: u.id,
+      data,
+    });
   }
 
   // 6. Seed Lesson Drafts & Activities
@@ -372,8 +409,6 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
   for (const group of languagesList) {
     let order = 0;
     for (const l of group.lessons) {
-      const lessonRef = db.collection(COLLECTIONS.contentLessons).doc(l.id);
-
       // Generate 6 Activities for this lesson
       const activityRefs: string[] = [];
       const interactionTypes = ["explanation", "vocabulary_card", "single_choice", "gap_fill", "reorder_tokens", "listening_choice"];
@@ -383,8 +418,7 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
         const activityId = `act-${l.id}-${idx + 1}`;
         activityRefs.push(activityId);
 
-        const activityRef = db.collection(COLLECTIONS.contentActivities).doc(activityId);
-        let activityObj: any = {
+        const activityObj: Record<string, unknown> = {
           id: activityId,
           instruction: `Luyện tập bài học: ${l.title}`,
           skill: "vocabulary",
@@ -443,8 +477,8 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
           activityObj.prompt = `Sắp xếp các thẻ từ sau.`;
           activityObj.tokens = [
             { id: "tok-1", text: mainVocab.term },
+            { id: "tok-2", text: "." },
           ];
-          activityObj.tokens.push({ id: "tok-2", text: "." });
           activityObj.scoringDefinition = {
             kind: "exact_token_sequence",
             correctTokenIds: ["tok-1", "tok-2"],
@@ -465,7 +499,11 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
           };
         }
 
-        await setDoc(activityRef, activityDraftSchema.parse(activityObj));
+        await seedDocument(store, result, {
+          collection: COLLECTIONS.contentActivities,
+          id: activityId,
+          data: activityDraftSchema.parse(activityObj),
+        });
       }
 
       // Set Lesson Draft
@@ -491,18 +529,24 @@ export async function seedPilotContent(db: any, timestamp: SeedTimestamp) {
         updatedAt: timestamp,
       });
 
-      await setDoc(lessonRef, lessonObj);
+      await seedDocument(store, result, {
+        collection: COLLECTIONS.contentLessons,
+        id: l.id,
+        data: lessonObj,
+      });
     }
   }
 
   console.log("  - seedPilotContent seeded successfully.");
+  return result;
 }
 
-export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
+export async function seedPilotExams(
+  store: PilotSeedStore,
+  timestamp: SeedTimestamp,
+): Promise<PilotSeedResult> {
   console.log("  - Starting seedPilotExams...");
-  const setDoc = async (ref: any, data: any) => {
-    await ref.set(data);
-  };
+  const result: PilotSeedResult = { created: [], skipped: [] };
 
   const programs = [
     { id: "general-english-cefr", code: "eng", blueprintId: "blueprint-eng-a1", formId: "form-version-eng-a1" },
@@ -513,7 +557,7 @@ export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
   for (const prog of programs) {
     console.log(`  - Seeding exam questions for ${prog.code}...`);
     const orderedQuestionVersionIds: string[] = [];
-    const publicSectionSnapshots: any[] = [
+    const publicSectionSnapshots: PilotExamSectionSnapshot[] = [
       {
         id: "section-reading",
         title: "Reading Comprehension",
@@ -541,9 +585,9 @@ export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
       const interactionType = isReading ? "single_choice" : (i <= 15 ? "gap_fill" : "reorder_tokens");
 
       let prompt = `Question ${i} for ${prog.code.toUpperCase()}: `;
-      let options: any[] = [];
-      let scoringDefinition: any = {};
-      let explanation = `This is a sample explanation for question ${i}.`;
+      let options: PilotQuestionOption[] = [];
+      let scoringDefinition: Record<string, string | string[]> = {};
+      const explanation = `This is a sample explanation for question ${i}.`;
 
       if (interactionType === "single_choice") {
         prompt += `Choose the correct answer.`;
@@ -565,7 +609,6 @@ export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
       }
 
       // Add to basic Questions collection
-      const qRef = db.collection(COLLECTIONS.questions).doc(questionId);
       const qData = questionSchema.parse({
         schemaVersion: 1,
         id: questionId,
@@ -574,10 +617,13 @@ export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
         createdAt: timestamp,
         updatedAt: timestamp,
       });
-      await setDoc(qRef, qData);
+      await seedDocument(store, result, {
+        collection: COLLECTIONS.questions,
+        id: questionId,
+        data: qData,
+      });
 
       // Add to QuestionVersions collection
-      const qvRef = db.collection(COLLECTIONS.questionVersions).doc(qvId);
       const qvData = questionVersionSchema.parse({
         schemaVersion: 1,
         id: qvId,
@@ -603,7 +649,11 @@ export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
         version: 1,
         createdAt: timestamp,
       });
-      await setDoc(qvRef, qvData);
+      await seedDocument(store, result, {
+        collection: COLLECTIONS.questionVersions,
+        id: qvId,
+        data: qvData,
+      });
 
       // Push sanitized public version into the snapshot
       const targetSec = publicSectionSnapshots.find((s) => s.id === sectionId)!;
@@ -618,7 +668,6 @@ export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
 
     // 2. Add Blueprint
     console.log(`  - Seeding blueprint for ${prog.code}...`);
-    const bpRef = db.collection(COLLECTIONS.examBlueprints).doc(prog.blueprintId);
     const bpData = examBlueprintSchema.parse({
       schemaVersion: 1,
       id: prog.blueprintId,
@@ -663,11 +712,14 @@ export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
       scoringVersion: "1.0.0",
       status: "published",
     });
-    await setDoc(bpRef, bpData);
+    await seedDocument(store, result, {
+      collection: COLLECTIONS.examBlueprints,
+      id: prog.blueprintId,
+      data: bpData,
+    });
 
     // 3. Add Exam Form Version (Pre-compiled)
     console.log(`  - Seeding form version for ${prog.code}...`);
-    const formRef = db.collection(COLLECTIONS.examFormVersions).doc(prog.formId);
     const formData = examFormVersionSchema.parse({
       schemaVersion: 1,
       id: prog.formId,
@@ -679,8 +731,13 @@ export async function seedPilotExams(db: any, timestamp: SeedTimestamp) {
       status: "published",
       publishedAt: timestamp,
     });
-    await setDoc(formRef, formData);
+    await seedDocument(store, result, {
+      collection: COLLECTIONS.examFormVersions,
+      id: prog.formId,
+      data: formData,
+    });
   }
 
   console.log("  - seedPilotExams completed successfully.");
+  return result;
 }

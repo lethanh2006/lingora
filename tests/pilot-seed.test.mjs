@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   createPilotCatalogSeed,
   seedPilotCatalog,
+  seedPilotContent,
+  seedPilotExams,
 } from "../src/features/content/seed/pilot-catalog.ts";
 import { timestamp } from "./fixtures/content.mjs";
 
@@ -46,4 +48,32 @@ test("pilot seed is idempotent and never overwrites existing documents", async (
   assert.equal(store.documents.size, 6);
   assert.equal(store.documents.get(englishPath).nameVi, "Tên đã chỉnh thủ công");
   assert.deepEqual(store.documents.get(englishPath).updatedAt, timestamp);
+});
+
+test("content and exam seed never overwrite documents from an earlier run", async () => {
+  const store = new MemorySeedStore();
+  const firstContentRun = await seedPilotContent(store, timestamp);
+  const firstExamRun = await seedPilotExams(store, timestamp);
+  const lessonPath = "contentLessons/en-basics-u1-l1";
+  const questionPath = "questions/q-eng-1";
+
+  store.documents.get(lessonPath).title = "Tiêu đề đã chỉnh thủ công";
+  store.documents.get(questionPath).status = "retired";
+
+  const laterTimestamp = {
+    seconds: timestamp.seconds + 100,
+    nanoseconds: 0,
+  };
+  const secondContentRun = await seedPilotContent(store, laterTimestamp);
+  const secondExamRun = await seedPilotExams(store, laterTimestamp);
+
+  assert.equal(firstContentRun.created.length, 118);
+  assert.equal(firstExamRun.created.length, 126);
+  assert.equal(secondContentRun.created.length, 0);
+  assert.equal(secondContentRun.skipped.length, firstContentRun.created.length);
+  assert.equal(secondExamRun.created.length, 0);
+  assert.equal(secondExamRun.skipped.length, firstExamRun.created.length);
+  assert.equal(store.documents.get(lessonPath).title, "Tiêu đề đã chỉnh thủ công");
+  assert.equal(store.documents.get(questionPath).status, "retired");
+  assert.deepEqual(store.documents.get(lessonPath).createdAt, timestamp);
 });

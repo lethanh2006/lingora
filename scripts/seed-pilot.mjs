@@ -39,22 +39,22 @@ const firestore = getFirestore(app);
 
 try {
   const now = Timestamp.now();
+  const seedStore = createFirestoreSeedStore(firestore);
 
   // 1. Seed Languages and Programs (Catalog)
   console.log("Seeding languages and programs...");
-  const result = await seedPilotCatalog(
-    createFirestoreSeedStore(firestore),
-    now,
-  );
-  console.log(`Đã tạo ${result.created.length}, bỏ qua ${result.skipped.length} document.`);
+  const catalogResult = await seedPilotCatalog(seedStore, now);
+  console.log(`Đã tạo ${catalogResult.created.length}, bỏ qua ${catalogResult.skipped.length} document.`);
 
   // 2. Seed Pilot Content Drafts
   console.log("Seeding pilot content drafts (courses, units, lessons, activities, lexemes)...");
-  await seedPilotContent(firestore, now);
+  const contentResult = await seedPilotContent(seedStore, now);
+  console.log(`Đã tạo ${contentResult.created.length}, bỏ qua ${contentResult.skipped.length} document.`);
 
   // 3. Seed Pilot Exam questions, blueprints, and forms
   console.log("Seeding pilot exam blueprints, form versions, and 60 questions...");
-  await seedPilotExams(firestore, now);
+  const examResult = await seedPilotExams(seedStore, now);
+  console.log(`Đã tạo ${examResult.created.length}, bỏ qua ${examResult.skipped.length} document.`);
 
   // 4. Validate and Publish all 12 Lessons
   console.log("Validating and publishing lessons...");
