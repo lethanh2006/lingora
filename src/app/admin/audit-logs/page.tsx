@@ -10,14 +10,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export const metadata: Metadata = { title: "Audit Logs – Admin" };
 
 const ACTION_COLORS: Record<string, string> = {
-  publish_lesson:    "bg-emerald-100 text-emerald-800",
-  publish_course:    "bg-blue-100 text-blue-800",
-  rollback_course:   "bg-amber-100 text-amber-800",
-  validate:          "bg-slate-100 text-slate-800",
-  upload_media:      "bg-violet-100 text-violet-800",
-  start_attempt:     "bg-cyan-100 text-cyan-800",
-  submit_attempt:    "bg-rose-100 text-rose-800",
-  compile_exam_form: "bg-indigo-100 text-indigo-800",
+  publish_lesson:       "bg-emerald-100 text-emerald-800",
+  publish_course:       "bg-blue-100 text-blue-800",
+  rollback_course:      "bg-amber-100 text-amber-800",
+  validate:             "bg-slate-100 text-slate-800",
+  upload_media:         "bg-violet-100 text-violet-800",
+  start_attempt:        "bg-cyan-100 text-cyan-800",
+  submit_attempt:       "bg-rose-100 text-rose-800",
+  compile_exam_form:    "bg-indigo-100 text-indigo-800",
+  submit_review_lesson: "bg-purple-100 text-purple-800",
+  approve_lesson:       "bg-sky-100 text-sky-800",
+  reject_lesson:        "bg-rose-100 text-rose-800",
+  retire_lesson:        "bg-red-100 text-red-800",
+  create_course_draft:  "bg-slate-100 text-slate-800",
+  update_course_draft:  "bg-slate-100 text-slate-800",
+  create_unit_draft:    "bg-slate-100 text-slate-800",
+  update_unit_draft:    "bg-slate-100 text-slate-800",
+  create_lesson_draft:  "bg-slate-100 text-slate-800",
+  update_lesson_draft:  "bg-slate-100 text-slate-800",
 };
 
 export default async function AdminAuditLogsPage() {

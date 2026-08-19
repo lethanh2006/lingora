@@ -153,6 +153,14 @@ export function AdminDashboard({
       alert("Vui lòng nhập ID revision cần rollback");
       return;
     }
+
+    const reason = prompt(`Bạn có chắc chắn muốn rollback khóa học này về revision: ${revisionId}?\nHãy nhập lý do rollback:`);
+    if (reason === null) return;
+    if (!reason.trim()) {
+      alert("Vui lòng nhập lý do rollback để lưu vết!");
+      return;
+    }
+
     setLoadingId(`rollback-${courseId}`);
     try {
       const res = await fetch("/api/admin/content/publish", {
@@ -162,7 +170,7 @@ export function AdminDashboard({
           action: "rollback_course",
           courseId,
           targetRevisionId: revisionId,
-          reason: "Rollback bằng Admin CMS",
+          reason: reason.trim(),
         }),
       });
       const data = await res.json();
@@ -177,6 +185,39 @@ export function AdminDashboard({
         alert(`Đã rollback khóa học về: ${data.currentPublishedRevisionId}`);
       } else {
         alert(`Rollback error: ${data.error}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Lỗi kết nối: ${msg}`);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleWorkflowAction = async (lessonId: string, action: string, comment?: string) => {
+    setLoadingId(`${action}-${lessonId}`);
+    try {
+      const res = await fetch("/api/admin/content/workflow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId, action, comment }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLessons((prev) =>
+          prev.map((l) =>
+            l.id === lessonId
+              ? {
+                  ...l,
+                  status: data.status,
+                  rejectionComment: data.rejectionComment,
+                }
+              : l
+          )
+        );
+        alert("Cập nhật trạng thái thành công!");
+      } else {
+        alert(`Lỗi cập nhật workflow: ${data.error}`);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -311,15 +352,27 @@ export function AdminDashboard({
                         <h3 className="font-semibold text-lg">{lesson.title}</h3>
                         <span className="text-xs text-muted-foreground font-mono">({lesson.id})</span>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-2xs font-semibold uppercase ${
+                          className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase border ${
                             lesson.status === "published"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-green-50 text-green-700 border-green-200"
                               : lesson.status === "approved"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : lesson.status === "in_review"
+                              ? "bg-purple-50 text-purple-700 border-purple-200"
+                              : lesson.status === "retired"
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                              : "bg-slate-50 text-slate-700 border-slate-200"
                           }`}
                         >
-                          {lesson.status}
+                          {lesson.status === "published"
+                            ? "Đã xuất bản"
+                            : lesson.status === "approved"
+                            ? "Đã duyệt"
+                            : lesson.status === "in_review"
+                            ? "Chờ duyệt"
+                            : lesson.status === "retired"
+                            ? "Gỡ bỏ"
+                            : "Bản nháp"}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">{lesson.summary}</p>
@@ -334,6 +387,16 @@ export function AdminDashboard({
                           Hoạt động: <strong>{lesson.activityRefs.length}</strong>
                         </span>
                       </div>
+
+                      {lesson.status === "draft" && (lesson as any).rejectionComment && (
+                        <div className="mt-2 p-2.5 bg-rose-50 text-rose-800 rounded-xl text-xs flex items-start gap-2 border border-rose-100">
+                          <AlertTriangle className="size-4 shrink-0 text-rose-600 mt-0.5" />
+                          <div>
+                            <span className="font-bold">Lý do từ chối:</span>{" "}
+                            {(lesson as any).rejectionComment}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Validation Report UI */}
                       {validated && (
@@ -369,7 +432,7 @@ export function AdminDashboard({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       <Button
                         variant="outline"
                         size="sm"
@@ -391,19 +454,81 @@ export function AdminDashboard({
                         </Button>
                       </Link>
 
-                      <Button
-                        size="sm"
-                        disabled={
-                          loadingId === `publish-${lesson.id}` ||
-                          lesson.status === "published" ||
-                          !validated ||
-                          hasErrors
-                        }
-                        onClick={() => handlePublishLesson(lesson.id)}
-                      >
-                        <Upload className="size-3.5 mr-1.5" />
-                        Publish
-                      </Button>
+                      {/* Submit Review */}
+                      {lesson.status === "draft" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={loadingId === `submit_review-${lesson.id}`}
+                          onClick={() => handleWorkflowAction(lesson.id, "submit_review")}
+                        >
+                          Gửi duyệt
+                        </Button>
+                      )}
+
+                      {/* Approve & Reject */}
+                      {lesson.status === "in_review" && (
+                        <>
+                          <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            size="sm"
+                            disabled={loadingId === `approve-${lesson.id}`}
+                            onClick={() => handleWorkflowAction(lesson.id, "approve")}
+                          >
+                            Duyệt
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={loadingId === `reject-${lesson.id}`}
+                            onClick={() => {
+                              const comment = prompt("Nhập lý do từ chối bài học:");
+                              if (comment === null) return;
+                              if (!comment.trim()) {
+                                alert("Vui lòng nhập lý do từ chối!");
+                                return;
+                              }
+                              handleWorkflowAction(lesson.id, "reject", comment.trim());
+                            }}
+                          >
+                            Từ chối
+                          </Button>
+                        </>
+                      )}
+
+                      {/* Publish */}
+                      {lesson.status === "approved" && (
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          disabled={
+                            loadingId === `publish-${lesson.id}` ||
+                            !validated ||
+                            hasErrors
+                          }
+                          onClick={() => handlePublishLesson(lesson.id)}
+                        >
+                          <Upload className="size-3.5 mr-1.5" />
+                          Xuất bản
+                        </Button>
+                      )}
+
+                      {/* Retire */}
+                      {lesson.status === "published" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                          disabled={loadingId === `retire-${lesson.id}`}
+                          onClick={() => {
+                            if (confirm("Bạn có chắc chắn muốn gỡ bỏ/lưu trữ bài học đã xuất bản này không?")) {
+                              handleWorkflowAction(lesson.id, "retire");
+                            }
+                          }}
+                        >
+                          Gỡ bỏ
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );

@@ -23,6 +23,11 @@ export default async function AdminContentPage() {
       summary: data.description || "",
       status: data.status || "draft",
       currentPublishedRevisionId: data.currentPublishedRevisionId || undefined,
+      updatedAt: data.updatedAt
+        ? new Timestamp(data.updatedAt.seconds, data.updatedAt.nanoseconds)
+            .toDate()
+            .toISOString()
+        : undefined,
     };
   });
 
@@ -35,6 +40,11 @@ export default async function AdminContentPage() {
       courseId: data.courseId || "",
       title: data.title || "",
       order: data.order || 0,
+      updatedAt: data.updatedAt
+        ? new Timestamp(data.updatedAt.seconds, data.updatedAt.nanoseconds)
+            .toDate()
+            .toISOString()
+        : undefined,
     };
   });
 
@@ -68,6 +78,12 @@ export default async function AdminContentPage() {
       vocabularyRefs: data.vocabularyRefs || [],
       sourceRefs: data.sourceRefs || [],
       validationReport,
+      rejectionComment: data.rejectionComment || null,
+      updatedAt: data.updatedAt
+        ? new Timestamp(data.updatedAt.seconds, data.updatedAt.nanoseconds)
+            .toDate()
+            .toISOString()
+        : undefined,
     };
   });
 

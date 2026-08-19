@@ -28,8 +28,19 @@ export async function POST(request: Request) {
       const snap = await ref.get();
       const isNew = !snap.exists;
 
+      if (!isNew && snap.exists) {
+        const dbUpdatedAt = snap.data()?.updatedAt;
+        if (dbUpdatedAt && body.clientUpdatedAt) {
+          const dbIso = dbUpdatedAt.toDate().toISOString();
+          if (dbIso !== body.clientUpdatedAt) {
+            return Response.json({ error: "CONFLICT", message: "Học liệu đã bị thay đổi bởi người khác" }, { status: 409 });
+          }
+        }
+      }
+
       const doc = {
         ...payload,
+        status: "draft" as const,
         createdAt: isNew ? now : snap.data()?.createdAt || now,
         updatedAt: now,
       };
@@ -57,8 +68,19 @@ export async function POST(request: Request) {
       const snap = await ref.get();
       const isNew = !snap.exists;
 
+      if (!isNew && snap.exists) {
+        const dbUpdatedAt = snap.data()?.updatedAt;
+        if (dbUpdatedAt && body.clientUpdatedAt) {
+          const dbIso = dbUpdatedAt.toDate().toISOString();
+          if (dbIso !== body.clientUpdatedAt) {
+            return Response.json({ error: "CONFLICT", message: "Học liệu đã bị thay đổi bởi người khác" }, { status: 409 });
+          }
+        }
+      }
+
       const doc = {
         ...payload,
+        status: "draft" as const,
         createdAt: isNew ? now : snap.data()?.createdAt || now,
         updatedAt: now,
       };
@@ -86,8 +108,20 @@ export async function POST(request: Request) {
       const snap = await ref.get();
       const isNew = !snap.exists;
 
+      if (!isNew && snap.exists) {
+        const dbUpdatedAt = snap.data()?.updatedAt;
+        if (dbUpdatedAt && body.clientUpdatedAt) {
+          const dbIso = dbUpdatedAt.toDate().toISOString();
+          if (dbIso !== body.clientUpdatedAt) {
+            return Response.json({ error: "CONFLICT", message: "Học liệu đã bị thay đổi bởi người khác" }, { status: 409 });
+          }
+        }
+      }
+
       const doc = {
         ...payload,
+        status: "draft" as const,
+        rejectionComment: null,
         createdAt: isNew ? now : snap.data()?.createdAt || now,
         updatedAt: now,
       };

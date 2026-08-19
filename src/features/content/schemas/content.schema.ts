@@ -420,6 +420,7 @@ export const lessonDraftSchema = z
     vocabularyRefs: z.array(documentIdSchema).max(200),
     sourceRefs: z.array(documentIdSchema).min(1).max(100),
     status: contentStatusSchema,
+    rejectionComment: z.string().trim().max(2_000).nullable().optional(),
     validationReport: z
       .object({
         errors: z.array(z.string().trim().min(1).max(1_000)),

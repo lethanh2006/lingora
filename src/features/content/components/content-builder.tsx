@@ -151,6 +151,7 @@ export function ContentBuilder({ courses, units, lessons }: ContentBuilderProps)
       estimatedMinutes: (course as any).estimatedMinutes || 300,
       status: course.status,
       order: (course as any).order || 0,
+      updatedAt: (course as any).updatedAt,
     });
   };
 
@@ -178,6 +179,7 @@ export function ContentBuilder({ courses, units, lessons }: ContentBuilderProps)
       description: (unit as any).description || "",
       order: unit.order,
       status: (unit as any).status || "draft",
+      updatedAt: (unit as any).updatedAt,
     });
   };
 
@@ -217,6 +219,7 @@ export function ContentBuilder({ courses, units, lessons }: ContentBuilderProps)
       sourceRefs: lesson.sourceRefs || [],
       status: lesson.status,
       validationReport: (lesson as any).validationReport || { errors: [], warnings: [], validatedAt: null },
+      updatedAt: (lesson as any).updatedAt,
     });
   };
 
@@ -241,11 +244,17 @@ export function ContentBuilder({ courses, units, lessons }: ContentBuilderProps)
         body: JSON.stringify({
           action,
           [payloadKey!]: editItem,
+          clientUpdatedAt: editItem.updatedAt || null,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gặp lỗi khi lưu học liệu");
+      if (!res.ok) {
+        if (res.status === 409) {
+          throw new Error("Xung đột dữ liệu: Một người dùng khác đã chỉnh sửa tài liệu này kể từ khi bạn mở nó. Vui lòng tải lại trang để cập nhật dữ liệu mới nhất.");
+        }
+        throw new Error(data.error || "Gặp lỗi khi lưu học liệu");
+      }
 
       setEditType(null);
       setEditItem(null);
