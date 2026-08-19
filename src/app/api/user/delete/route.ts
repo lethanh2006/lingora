@@ -5,6 +5,7 @@ import { hasValidOrigin, jsonError } from "@/lib/http";
 import { createDeletionService } from "@/features/user/services/deletion-service";
 import { logger } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limiter";
+import { writeAuditLog, AUDIT_ACTIONS } from "@/lib/audit-log";
 
 export async function POST(request: Request) {
   if (!hasValidOrigin(request)) return jsonError("Invalid origin", 403);
@@ -39,6 +40,15 @@ export async function POST(request: Request) {
 
     // 3. Clear session cookie
     (await cookies()).set(SESSION_COOKIE_NAME, "", { maxAge: -1, path: "/" });
+
+    // 4. Audit log — ghi lại sự kiện xóa tài khoản (fire-and-forget)
+    void writeAuditLog(db, {
+      actorUid: uid,
+      action: AUDIT_ACTIONS.ACCOUNT_DELETE,
+      entityType: "user",
+      entityId: uid,
+      metadata: { selfDelete: true },
+    });
 
     return Response.json({ ok: true });
   } catch (error) {

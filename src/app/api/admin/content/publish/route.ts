@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { stableIdSchema } from "@/features/content/schemas/content.schema";
+import { writeAuditLog, AUDIT_ACTIONS } from "@/lib/audit-log";
 
 const publishRequestSchema = z.discriminatedUnion("action", [
   z.object({
@@ -42,6 +43,14 @@ export async function POST(request: Request) {
 
     if (payload.action === "publish_lesson") {
       const revision = await publishService.publishLesson(payload.lessonId, user.uid);
+      void writeAuditLog(getAdminDb(), {
+        actorUid: user.uid,
+        action: AUDIT_ACTIONS.LESSON_PUBLISH,
+        entityType: "lesson",
+        entityId: payload.lessonId,
+        revisionId: revision.id,
+        metadata: { revisionNumber: revision.revisionNumber },
+      });
       return Response.json({
         ok: true,
         revisionId: revision.id,

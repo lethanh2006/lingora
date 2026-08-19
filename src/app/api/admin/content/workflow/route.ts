@@ -4,8 +4,8 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { stableIdSchema } from "@/features/content/schemas/content.schema";
-import { auditLogSchema } from "@/features/content/schemas/audit-log.schema";
 import { Timestamp } from "firebase-admin/firestore";
+import { writeAuditLogInTransaction, AUDIT_ACTIONS } from "@/lib/audit-log";
 
 const workflowRequestSchema = z.object({
   lessonId: stableIdSchema,
@@ -76,10 +76,8 @@ export async function POST(request: Request) {
 
       transaction.update(lessonRef, updateData);
 
-      // Audit Log
-      const auditLogRef = db.collection(COLLECTIONS.auditLogs).doc();
-      const auditLog = auditLogSchema.parse({
-        schemaVersion: 1,
+      // Audit Log — ghi trong cùng transaction để đảm bảo tính nhất quán
+      writeAuditLogInTransaction(transaction, db, {
         actorUid: user.uid,
         action: `${payload.action}_lesson`,
         entityType: "lesson",
@@ -90,10 +88,7 @@ export async function POST(request: Request) {
           toStatus: nextStatus,
           comment: payload.comment || undefined,
         },
-        createdAt: now,
       });
-
-      transaction.create(auditLogRef, auditLog);
 
       return { status: nextStatus, rejectionComment };
     });
