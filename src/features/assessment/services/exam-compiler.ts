@@ -62,7 +62,7 @@ export function createExamCompiler(db: Firestore) {
     async compileExamForm(
       blueprint: ExamBlueprint,
       blueprintVersion: number,
-      randomSeed?: number // Optional seed for deterministic selection in tests
+      _randomSeed?: number // Optional seed for deterministic selection in tests
     ): Promise<ExamFormVersion> {
       const publicSectionSnapshots: PublicSectionSnapshot[] = [];
       const orderedQuestionVersionIds: string[] = [];

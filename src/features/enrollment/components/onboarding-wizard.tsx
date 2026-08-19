@@ -4,9 +4,6 @@ import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
-  Target,
-  BarChart2,
-  Clock,
   ArrowRight,
   ArrowLeft,
   Loader2,
@@ -29,7 +26,17 @@ type OnboardingWizardProps = {
   programs: Program[];
 };
 
-const GOALS = [
+type GoalItem = {
+  id: string;
+  label: string;
+  description: string;
+  icon: any;
+  color: string;
+  bg: string;
+  selectedBg: string;
+};
+
+const GOALS: GoalItem[] = [
   {
     id: "communication",
     label: "Giao tiếp hàng ngày",
@@ -99,10 +106,6 @@ export function OnboardingWizard({ programs }: OnboardingWizardProps) {
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [selectedDailyMinutes, setSelectedDailyMinutes] = useState<number>(15);
   const [error, setError] = useState<string | null>(null);
-
-  const steps: Step[] = ["language", "goal", "level", "daily", "done"];
-  const currentStepIdx = steps.indexOf(step);
-  const progress = ((currentStepIdx) / (steps.length - 1)) * 100;
 
   const handleEnrollAndFinish = async () => {
     if (!selectedProgramId) return;

@@ -5,7 +5,6 @@ import { requireAdmin } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { SourceManager } from "@/features/content/components/source-manager";
-import { sourceAttributionSchema } from "@/features/content/schemas/content.schema";
 
 export const metadata: Metadata = { title: "Source Registry – Admin" };
 

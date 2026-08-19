@@ -5,9 +5,6 @@ import { Timestamp } from "firebase-admin/firestore";
 import {
   ArrowLeft,
   HelpCircle,
-  CheckCircle2,
-  Clock,
-  XCircle,
   BookOpen,
   Tag,
   Target,
@@ -19,7 +16,7 @@ import { requireAdmin } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { questionSchema, questionVersionSchema } from "@/features/assessment/schemas/assessment.schema";
+import { questionSchema } from "@/features/assessment/schemas/assessment.schema";
 
 export const metadata: Metadata = { title: "Chi tiết câu hỏi – Admin" };
 

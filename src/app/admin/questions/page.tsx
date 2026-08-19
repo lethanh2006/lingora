@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { HelpCircle, Plus, Eye, ExternalLink, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { HelpCircle, Plus, Eye, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Timestamp } from "firebase-admin/firestore";
 
 import { requireAdmin } from "@/lib/auth/session";

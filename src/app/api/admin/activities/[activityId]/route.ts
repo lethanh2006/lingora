@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { jsonError } from "@/lib/http";
-import { activityDraftSchema } from "@/features/content/schemas/content.schema";
 import { auditLogSchema } from "@/features/content/schemas/audit-log.schema";
 
 export async function GET(

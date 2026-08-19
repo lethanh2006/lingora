@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS, USER_SUBCOLLECTIONS } from "@/lib/firebase/collections";
 import { hasValidOrigin, jsonError } from "@/lib/http";
-import { enrollmentGoalTypeSchema, enrollmentSchema } from "@/features/enrollment/schemas/enrollment.schema";
+import { enrollmentGoalTypeSchema } from "@/features/enrollment/schemas/enrollment.schema";
 import { stableIdSchema } from "@/features/content/schemas/content.schema";
 
 const MAX_REQUEST_BYTES = 4_096;

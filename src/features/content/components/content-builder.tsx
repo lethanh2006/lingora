@@ -14,9 +14,7 @@ import {
   ArrowDown,
   Trash2,
   Save,
-  X,
-  FileCode,
-  Tag
+  X
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

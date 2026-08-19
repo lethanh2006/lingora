@@ -8,7 +8,6 @@ import {
   ExternalLink,
   BookOpen,
   Globe,
-  Tag,
   Save,
   XCircle,
   CheckCircle2,

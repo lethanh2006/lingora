@@ -85,7 +85,7 @@ export function createAttemptService(db: Firestore) {
         // Check if it has expired in the meantime
         if (getMillis(attempt.expiresAt) <= getMillis(now)) {
           // Auto-submit expired attempt
-          const finalized = await this.submitAndGradeAttempt(userId, attempt.id, now);
+          await this.submitAndGradeAttempt(userId, attempt.id, now);
           // Proceed to create a new one since the old one is now graded/finalized
         } else {
           // Fetch corresponding form version

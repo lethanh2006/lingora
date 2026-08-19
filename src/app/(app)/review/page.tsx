@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Volume2, Sparkles, BookOpen, Eye, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Volume2, Eye, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { RubyText } from "@/features/content/components/ruby-text";
 
 type ReviewItemWithLexeme = {
@@ -33,7 +32,6 @@ type ReviewItemWithLexeme = {
 };
 
 export default function ReviewPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ReviewItemWithLexeme[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -61,7 +59,7 @@ export default function ReviewPage() {
   const currentItem = items[currentIdx];
 
   // Text to Speech helper
-  const handleSpeak = (e?: React.MouseEvent) => {
+  const handleSpeak = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!currentItem?.lexeme?.term) return;
     const textCleaned = currentItem.lexeme.term.replace(/([^\s[\]]+)\[([^[\]]+)\]/g, "$1");
@@ -72,19 +70,48 @@ export default function ReviewPage() {
     else utterance.lang = "en-US";
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
-  };
+  }, [currentItem]);
 
   // Automatically speak when a new card is loaded
   useEffect(() => {
     if (currentItem) {
-      setShowMeaning(false);
       // Wait a tiny bit to make sure user context is loaded
       const timer = setTimeout(() => {
         handleSpeak();
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [currentIdx]);
+  }, [currentIdx, currentItem, handleSpeak]);
+
+  const handleAnswer = useCallback(async (rating: "again" | "hard" | "good" | "easy") => {
+    if (!currentItem || submitting) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/reviews/${currentItem.id}/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating }),
+      });
+
+      if (res.ok) {
+        setShowMeaning(false);
+        if (currentIdx < items.length - 1) {
+          setCurrentIdx((idx) => idx + 1);
+        } else {
+          // Finished all
+          setItems([]);
+          setCurrentIdx(0);
+        }
+      } else {
+        console.error("Failed to submit rating");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [currentItem, submitting, currentIdx, items.length]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -111,36 +138,7 @@ export default function ReviewPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [loading, items, currentIdx, showMeaning, submitting]);
-
-  const handleAnswer = async (rating: "again" | "hard" | "good" | "easy") => {
-    if (!currentItem || submitting) return;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch(`/api/reviews/${currentItem.id}/answer`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating }),
-      });
-
-      if (res.ok) {
-        if (currentIdx < items.length - 1) {
-          setCurrentIdx((idx) => idx + 1);
-        } else {
-          // Finished all
-          setItems([]);
-          setCurrentIdx(0);
-        }
-      } else {
-        console.error("Failed to submit rating");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, [loading, items, currentIdx, showMeaning, submitting, handleAnswer]);
 
   if (loading) {
     return (

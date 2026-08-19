@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Layers, Plus, Edit3, Trash2, HelpCircle } from "lucide-react";
+import { Layers, Plus, Edit3 } from "lucide-react";
 import { Timestamp } from "firebase-admin/firestore";
 
 import { requireAdmin } from "@/lib/auth/session";

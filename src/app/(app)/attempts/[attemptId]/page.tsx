@@ -1,23 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   Clock,
   ArrowRight,
   ArrowLeft,
-  Flag,
   Send,
   Loader2,
   CheckCircle2,
-  AlertTriangle,
   Bookmark,
   ChevronRight,
   BookOpen,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Types matching assessment.schema
 type QuestionSnapshot = {
@@ -70,12 +68,85 @@ export default function AttemptTakingPage() {
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number | null>(null);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
 
-  // Keep ref to answers for autosaving
+  // Keep ref to answers and revisions for autosaving
   const answersRef = useRef(answers);
-  answersRef.current = answers;
-
   const revisionsRef = useRef(revisions);
-  revisionsRef.current = revisions;
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
+  useEffect(() => {
+    revisionsRef.current = revisions;
+  }, [revisions]);
+
+  const handleAutoSubmit = useCallback(async () => {
+    // Clear autosave
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    // Call submit
+    try {
+      const res = await fetch(`/api/attempts/${attemptId}/submit`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        router.push(`/results/${attemptId}`);
+      }
+    } catch (err) {
+      console.error(err);
+      router.push(`/results/${attemptId}`);
+    }
+  }, [attemptId, router]);
+
+  const triggerAutosave = useCallback((sectionId: string) => {
+    setSaveStatus("saving");
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const secAnswers = answersRef.current[sectionId] || {};
+        const currentRev = revisionsRef.current[sectionId] || 0;
+
+        const res = await fetch(`/api/attempts/${attemptId}/sections/${sectionId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            answers: secAnswers,
+            clientRevision: currentRev,
+          }),
+        });
+
+        if (res.status === 409) {
+          // Stale version warning
+          setSaveStatus("error");
+          console.warn("Revision conflict while saving section answers");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error("Save error");
+        }
+
+        const data = await res.json();
+        // Update server revision
+        setRevisions((prev) => ({
+          ...prev,
+          [sectionId]: data.section.serverRevision,
+        }));
+        setSaveStatus("saved");
+      } catch (err) {
+        console.error("Autosave failed", err);
+        setSaveStatus("error");
+      }
+    }, 2000); // 2 second debounce
+  }, [attemptId]);
 
   // 1. Fetch initial attempt state
   useEffect(() => {
@@ -143,77 +214,7 @@ export default function AttemptTakingPage() {
     calculateTime();
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
-  }, [attempt]);
-
-  // 3. Debounced Autosave on Answers Change
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const triggerAutosave = (sectionId: string) => {
-    setSaveStatus("saving");
-
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        const secAnswers = answersRef.current[sectionId] || {};
-        const currentRev = revisionsRef.current[sectionId] || 0;
-
-        const res = await fetch(`/api/attempts/${attemptId}/sections/${sectionId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            answers: secAnswers,
-            clientRevision: currentRev,
-          }),
-        });
-
-        if (res.status === 409) {
-          // Stale version warning
-          setSaveStatus("error");
-          console.warn("Revision conflict while saving section answers");
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error("Save error");
-        }
-
-        const data = await res.json();
-        // Update server revision
-        setRevisions((prev) => ({
-          ...prev,
-          [sectionId]: data.section.serverRevision,
-        }));
-        setSaveStatus("saved");
-      } catch (err) {
-        console.error("Autosave failed", err);
-        setSaveStatus("error");
-      }
-    }, 2000); // 2 second debounce
-  };
-
-  const handleAutoSubmit = async () => {
-    // Clear autosave
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    // Call submit
-    try {
-      const res = await fetch(`/api/attempts/${attemptId}/submit`, {
-        method: "POST",
-      });
-      if (res.ok) {
-        router.push(`/results/${attemptId}`);
-      }
-    } catch (err) {
-      console.error(err);
-      router.push(`/results/${attemptId}`);
-    }
-  };
+  }, [attempt, handleAutoSubmit]);
 
   const handleManualSubmit = async () => {
     if (!window.confirm("Bạn có chắc chắn muốn nộp bài thi ngay bây giờ không?")) {
@@ -263,7 +264,6 @@ export default function AttemptTakingPage() {
   }
 
   const currentSection = sections[currentSectionIdx];
-  const totalQuestions = sections.reduce((sum, s) => sum + s.questions.length, 0);
 
   // Update response helper
   const updateAnswer = (questionId: string, val: any) => {

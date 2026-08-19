@@ -1,23 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
   Trash2,
   Save,
   HelpCircle,
-  Clock,
   CheckCircle2,
   XCircle,
-  Tag,
   Target,
-  BarChart2,
-  BookOpen,
   ArrowLeft,
   Settings,
   Layers,
-  ChevronDown
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,14 +97,7 @@ export function QuestionEditor({ initialQuestion, isNew = false }: QuestionEdito
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Sync scoring inputs when options change
-  useEffect(() => {
-    if (options.length > 0) {
-      if (interactionType === "single_choice" && !correctOptionId) {
-        setCorrectOptionId(options[0].id);
-      }
-    }
-  }, [options, interactionType, correctOptionId]);
+
 
   // Prompt block handlers
   const addPromptBlock = () => {
@@ -165,7 +153,7 @@ export function QuestionEditor({ initialQuestion, isNew = false }: QuestionEdito
     // Build scoringDefinition based on interactionType
     let scoringDefinition: any = {};
     if (interactionType === "single_choice") {
-      scoringDefinition = { correctOptionId };
+      scoringDefinition = { correctOptionId: correctOptionId || (options[0]?.id || "") };
     } else if (interactionType === "multiple_choice") {
       scoringDefinition = { correctOptionIds };
     } else if (interactionType === "gap_fill") {
@@ -531,7 +519,7 @@ export function QuestionEditor({ initialQuestion, isNew = false }: QuestionEdito
                 ) : (
                   <select
                     className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:outline-none"
-                    value={correctOptionId}
+                    value={correctOptionId || (options[0]?.id || "")}
                     onChange={(e) => setCorrectOptionId(e.target.value)}
                   >
                     {options.map((opt) => (

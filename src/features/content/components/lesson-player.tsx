@@ -230,7 +230,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
     }
   };
 
-  const handleCheck = () => {
+  const handleCheck = useCallback(() => {
     if (!currentActivity) return;
 
     let correct = false;
@@ -297,9 +297,9 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
 
     // Trigger save status updates on checking answers
     triggerAutosave(updatedState, newCompletedCount, false, actId);
-  };
+  }, [currentActivity, answers, lessonRevision.languageId, reorderSelected, boundedActivityState, triggerAutosave]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     const actId = currentActivity.id;
     let updatedState = { ...boundedActivityState };
 
@@ -330,7 +330,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
       triggerAutosave(updatedState, finalCompletedCount, true, actId);
       setScreen("outro");
     }
-  };
+  }, [currentActivity, boundedActivityState, currentIdx, activities.length, triggerAutosave]);
 
   // Keyboard Navigation / Enter key handler
   useEffect(() => {

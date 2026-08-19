@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Timestamp } from "firebase-admin/firestore";
-import { Check, X, ArrowLeft, RefreshCw, Award, BookOpen, Clock, BarChart3, HelpCircle } from "lucide-react";
+import { Check, X, ArrowLeft, Award, Clock, BarChart3, HelpCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";

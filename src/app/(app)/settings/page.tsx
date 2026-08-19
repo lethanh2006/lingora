@@ -4,6 +4,7 @@ import { Settings, UserCircle, Target } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/features/user/components/profile-form";
 import { EnrollmentPrefsForm } from "@/features/enrollment/components/enrollment-prefs-form";
+import { AccountDeletionCard } from "@/features/user/components/account-deletion-card";
 import { requireUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS, USER_SUBCOLLECTIONS } from "@/lib/firebase/collections";
@@ -99,6 +100,9 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Danger Zone: Account Deletion */}
+      <AccountDeletionCard />
     </div>
   );
 }
