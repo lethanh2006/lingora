@@ -5,6 +5,7 @@ import { hasValidOrigin, jsonError } from "@/lib/http";
 import { createAssessmentRepository } from "@/features/assessment/assessment.repository.ts";
 import { createAttemptService } from "@/features/assessment/services/attempt.service.ts";
 import { logger } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/rate-limiter";
 
 const startAttemptInputSchema = z.object({
   blueprintId: z.string().trim().min(1),
@@ -15,6 +16,15 @@ export async function POST(request: Request) {
 
   const user = await getCurrentUser();
   if (!user) return jsonError("Unauthenticated", 401);
+
+  // Rate Limit: Max 10 attempt creations per 60 seconds per UID
+  const rateLimit = await checkRateLimit(user.uid, "start_attempt", {
+    maxRequests: 10,
+    windowSeconds: 60,
+  });
+  if (!rateLimit.success) {
+    return jsonError("Quá nhiều yêu cầu. Vui lòng thử lại sau.", 429);
+  }
 
   try {
     const body = await request.text();

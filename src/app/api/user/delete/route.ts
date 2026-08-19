@@ -4,6 +4,7 @@ import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { createDeletionService } from "@/features/user/services/deletion-service";
 import { logger } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   if (!hasValidOrigin(request)) return jsonError("Invalid origin", 403);
@@ -13,6 +14,15 @@ export async function POST(request: Request) {
 
   if (user.role === "admin") {
     return jsonError("Không thể xóa tài khoản Admin qua cổng này", 400);
+  }
+
+  // Rate Limit: Max 3 deletion attempts per 60 seconds per UID
+  const rateLimit = await checkRateLimit(user.uid, "delete_account", {
+    maxRequests: 3,
+    windowSeconds: 60,
+  });
+  if (!rateLimit.success) {
+    return jsonError("Quá nhiều yêu cầu. Vui lòng thử lại sau.", 429);
   }
 
   const db = getAdminDb();
