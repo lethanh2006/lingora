@@ -9,6 +9,7 @@ import {
   attemptSchema,
   attemptSectionSchema,
 } from "../src/features/assessment/schemas/assessment.schema.ts";
+import { sanitizeQuestionVersion } from "../src/features/assessment/services/exam-compiler.ts";
 
 const timestamp = Object.freeze({ seconds: 1_700_000_000, nanoseconds: 0 });
 
@@ -160,4 +161,15 @@ test("attempt schema rejects invalid states", () => {
     }).success,
     false,
   );
+});
+
+test("public question snapshots must not leak scoring secrets, explanations, or metadata", () => {
+  const publicQuestion = sanitizeQuestionVersion(questionVersionFixture);
+
+  assert.equal(publicQuestion.id, "q-version-1");
+  assert.equal(publicQuestion.questionId, "q-eng-01");
+  assert.ok(!("scoringDefinition" in publicQuestion));
+  assert.ok(!("explanation" in publicQuestion));
+  assert.ok(!("authorUid" in publicQuestion));
+  assert.ok(!("reviewerUid" in publicQuestion));
 });
