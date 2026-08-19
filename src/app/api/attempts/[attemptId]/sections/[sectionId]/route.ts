@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { createAttemptService } from "@/features/assessment/services/attempt.service.ts";
+import { logger } from "@/lib/logger";
 
 const saveSectionAnswersInputSchema = z.object({
   answers: z.record(z.string(), z.any()),
@@ -47,7 +48,12 @@ export async function PUT(
       return jsonError(error.message, 409); // Conflict / Precondition failed
     }
 
-    console.error("Failed to save section answers", error);
+    logger.error("Failed to save section answers", {
+      error,
+      userId: user.uid,
+      path: `/api/attempts/${attemptId}/sections/${sectionId}`,
+      method: "PUT",
+    });
     return jsonError("Unable to save section answers", 500);
   }
 }

@@ -4,6 +4,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { createAssessmentRepository } from "@/features/assessment/assessment.repository.ts";
 import { createAttemptService } from "@/features/assessment/services/attempt.service.ts";
+import { logger } from "@/lib/logger";
 
 const startAttemptInputSchema = z.object({
   blueprintId: z.string().trim().min(1),
@@ -38,7 +39,12 @@ export async function POST(request: Request) {
 
     return Response.json({ attempt, formVersion: finalFormVersion });
   } catch (error) {
-    console.error("Failed to start exam attempt", error);
+    logger.error("Failed to start exam attempt", {
+      error,
+      userId: user.uid,
+      path: "/api/attempts",
+      method: "POST",
+    });
     return jsonError("Unable to start exam attempt", 500);
   }
 }

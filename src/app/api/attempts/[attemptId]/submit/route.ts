@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { createAttemptService } from "@/features/assessment/services/attempt.service.ts";
+import { logger } from "@/lib/logger";
 
 export async function POST(
   request: Request,
@@ -21,7 +22,12 @@ export async function POST(
 
     return Response.json({ ok: true, attempt: gradedAttempt });
   } catch (error) {
-    console.error("Failed to submit attempt", error);
+    logger.error("Failed to submit attempt", {
+      error,
+      userId: user.uid,
+      path: `/api/attempts/${attemptId}/submit`,
+      method: "POST",
+    });
     return jsonError("Unable to submit attempt", 500);
   }
 }

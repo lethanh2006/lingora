@@ -3,6 +3,7 @@ import { getCurrentUser, SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { createDeletionService } from "@/features/user/services/deletion-service";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
   if (!hasValidOrigin(request)) return jsonError("Invalid origin", 403);
@@ -31,7 +32,12 @@ export async function POST(request: Request) {
 
     return Response.json({ ok: true });
   } catch (error) {
-    console.error("Failed to delete user account:", error);
+    logger.error("Failed to delete user account", {
+      error,
+      userId: user.uid,
+      path: "/api/user/delete",
+      method: "POST",
+    });
     return jsonError("Unable to delete account", 500);
   }
 }
