@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileQuestion, ArrowRight, Clock, CheckCircle2, XCircle, Layers } from "lucide-react";
+import { FileQuestion, ArrowRight, Layers } from "lucide-react";
 import { Timestamp } from "firebase-admin/firestore";
 
 import { requireAdmin } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CompileBlueprintButton } from "@/features/assessment/components/compile-blueprint-button";
 
 export const metadata: Metadata = { title: "Quản lý đề thi – Admin" };
 
@@ -115,6 +116,7 @@ export default async function AdminExamsPage() {
                       >
                         Xem trang thi <ArrowRight className="size-3" />
                       </Link>
+                      <CompileBlueprintButton blueprintId={bp.id} />
                     </div>
                   </CardContent>
                 </Card>
