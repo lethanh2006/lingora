@@ -7,7 +7,6 @@ import {
   Link2,
   ClipboardList,
   BookOpen,
-  Users,
   Activity,
   ArrowRight,
 } from "lucide-react";
@@ -16,7 +15,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { requireAdmin } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Admin CMS – Lingora" };
 
@@ -46,8 +45,8 @@ export default async function AdminPage() {
     return {
       id: doc.id,
       action: data.action || "unknown",
-      resourceType: data.resourceType || "-",
-      resourceId: data.resourceId || "-",
+      resourceType: data.entityType || "-",
+      resourceId: data.entityId || "-",
       actorUid: data.actorUid || "-",
       createdAt: data.createdAt
         ? new Timestamp(data.createdAt.seconds, data.createdAt.nanoseconds)
