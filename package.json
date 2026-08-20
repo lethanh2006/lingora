@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
     "test": "node --conditions=react-server --test tests/content-contracts.test.mjs tests/enrollment-contracts.test.mjs tests/pilot-seed.test.mjs tests/publish-lesson.test.mjs tests/progress-contracts.test.mjs tests/progress-service.test.mjs tests/assessment-contracts.test.mjs tests/publish-flow.test.mjs tests/language-adapter.test.mjs tests/review-scheduler.test.mjs tests/assessment-repository.test.mjs tests/exam-compiler.test.mjs tests/attempt-service.test.mjs tests/question-editor-api.test.mjs tests/sources-api.test.mjs tests/content-api.test.mjs tests/exams-api.test.mjs tests/workflow-api.test.mjs tests/account-deletion.test.mjs tests/rate-limiter.test.mjs tests/idempotency.test.mjs tests/data-retention.test.mjs tests/audit-log.test.mjs tests/health-check.test.mjs",

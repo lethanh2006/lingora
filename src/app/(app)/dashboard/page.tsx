@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MockDataSeederButton } from "@/features/dev/components/mock-data-seeder-button";
 import { requireUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
@@ -128,10 +129,13 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-sm font-medium text-primary">Dashboard</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">Xin chào, {user.displayName}</h1>
-        <p className="mt-2 text-muted-foreground">Sẵn sàng cho buổi học đầu tiên của bạn.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-primary">Dashboard</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">Xin chào, {user.displayName}</h1>
+          <p className="mt-2 text-muted-foreground">Sẵn sàng cho buổi học đầu tiên của bạn.</p>
+        </div>
+        <MockDataSeederButton />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
