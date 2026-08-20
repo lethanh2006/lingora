@@ -62,7 +62,7 @@ export async function checkFirestore(
 ): Promise<CheckResult> {
   const start = Date.now();
   try {
-    await db.collection("systemConfig").doc("__healthcheck__").get();
+    await db.collection("systemConfig").doc("healthcheck").get();
     return { name: "firestore", status: "ok", durationMs: Date.now() - start };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
