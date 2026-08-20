@@ -50,22 +50,23 @@ export default async function AdminQuestionDetailPage({ params }: QuestionDetail
   const versionsSnap = await db
     .collection(COLLECTIONS.questionVersions)
     .where("questionId", "==", questionId)
-    .orderBy("version", "desc")
     .get();
 
   const versions: Array<Record<string, any> & { id: string; createdAtStr: string }> =
-    versionsSnap.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        createdAtStr: data.createdAt
-          ? new Timestamp(data.createdAt.seconds, data.createdAt.nanoseconds)
-              .toDate()
-              .toLocaleString("vi-VN")
-          : "-",
-      };
-    });
+    versionsSnap.docs
+      .map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAtStr: data.createdAt
+            ? new Timestamp(data.createdAt.seconds, data.createdAt.nanoseconds)
+                .toDate()
+                .toLocaleString("vi-VN")
+            : "-",
+        };
+      })
+      .sort((a: any, b: any) => b.version - a.version);
 
   const latestVersion = versions[0] as (Record<string, any> & { id: string; createdAtStr: string }) | undefined;
 

@@ -4,15 +4,19 @@ import { BookOpen, LayoutDashboard, Settings, ShieldCheck } from "lucide-react";
 
 import { Logo } from "@/components/layout/logo";
 import { LogoutButton } from "@/features/auth/components/logout-button";
+import { getCurrentUser } from "@/lib/auth/session";
 
-const navigation = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/learn", label: "Học", icon: BookOpen },
-  { href: "/settings", label: "Cài đặt", icon: Settings },
-  { href: "/admin", label: "Quản trị", icon: ShieldCheck },
-];
+export async function AppShell({ children }: { children: ReactNode }) {
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === "admin";
 
-export function AppShell({ children }: { children: ReactNode }) {
+  const navigation = [
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/learn", label: "Học", icon: BookOpen },
+    { href: "/settings", label: "Cài đặt", icon: Settings },
+    ...(isAdmin ? [{ href: "/admin", label: "Quản trị", icon: ShieldCheck }] : []),
+  ];
+
   return (
     <div className="min-h-screen bg-muted/40">
       <header className="border-b border-border bg-background/90 backdrop-blur">

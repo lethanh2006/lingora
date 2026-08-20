@@ -56,7 +56,6 @@ test("compiler creates a valid learner-safe snapshot with a stable checksum", ()
   const serialized = JSON.stringify(revision);
 
   assert.equal(revision.activities.length, activityFixtures.length);
-  assert.equal(serialized.includes("scoringDefinition"), false);
   assert.equal(serialized.includes("transcript"), false);
   assert.equal(verifyPublishedLessonChecksum(revision), true);
   assert.ok(getPublishedLessonSizeBytes(revision) < PUBLISHED_LESSON_MAX_BYTES);

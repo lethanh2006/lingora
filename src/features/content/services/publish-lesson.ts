@@ -77,22 +77,34 @@ export function sanitizePublishedActivity(input: ActivityDraft): PublicActivityD
     case "vocabulary_card":
       return { ...base, type: activity.type, entries: activity.entries };
     case "single_choice":
-      return { ...base, type: activity.type, options: activity.options };
+      return {
+        ...base,
+        type: activity.type,
+        options: activity.options,
+        scoringDefinition: activity.scoringDefinition,
+      };
     case "gap_fill":
       return {
         ...base,
         type: activity.type,
         template: activity.template,
         gaps: activity.gaps,
+        scoringDefinition: activity.scoringDefinition,
       };
     case "reorder_tokens":
-      return { ...base, type: activity.type, tokens: activity.tokens };
+      return {
+        ...base,
+        type: activity.type,
+        tokens: activity.tokens,
+        scoringDefinition: activity.scoringDefinition,
+      };
     case "listening_choice":
       return {
         ...base,
         type: activity.type,
         audioMediaId: activity.audioMediaId,
         options: activity.options,
+        scoringDefinition: activity.scoringDefinition,
       };
   }
 }
@@ -162,7 +174,7 @@ export function verifyPublishedLessonChecksum(input: unknown) {
 
 export function compilePublishedLesson(input: PublishLessonInput): PublishedLessonRevision {
   const lesson = lessonDraftSchema.parse(input.lesson);
-  if (lesson.status !== "approved") {
+  if (lesson.status !== "approved" && lesson.status !== "published") {
     throw new PublishValidationError(
       "draft_not_approved",
       "Chỉ lesson ở trạng thái approved mới được publish",

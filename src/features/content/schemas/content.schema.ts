@@ -200,6 +200,13 @@ const tokenSchema = z
   })
   .strict();
 
+const exactChoiceScoringSchema = z
+  .object({
+    kind: z.literal("exact_single_choice"),
+    correctOptionId: stableIdSchema,
+  })
+  .strict();
+
 const explanationPublicSchema = z
   .object({
     ...activityBaseShape,
@@ -221,6 +228,7 @@ const singleChoicePublicSchema = z
     ...activityBaseShape,
     type: z.literal("single_choice"),
     options: z.array(choiceOptionSchema).min(2).max(8),
+    scoringDefinition: exactChoiceScoringSchema.optional(),
   })
   .strict();
 
@@ -230,6 +238,13 @@ const gapFillPublicSchema = z
     type: z.literal("gap_fill"),
     template: z.string().trim().min(1).max(2_000),
     gaps: z.array(gapSchema).min(1).max(20),
+    scoringDefinition: z
+      .object({
+        kind: z.literal("accepted_gap_answers"),
+        answers: z.array(gapAnswerSchema).min(1).max(20),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -238,6 +253,13 @@ const reorderTokensPublicSchema = z
     ...activityBaseShape,
     type: z.literal("reorder_tokens"),
     tokens: z.array(tokenSchema).min(2).max(30),
+    scoringDefinition: z
+      .object({
+        kind: z.literal("exact_token_sequence"),
+        correctTokenIds: z.array(stableIdSchema).min(2).max(30),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -247,6 +269,7 @@ const listeningChoicePublicSchema = z
     type: z.literal("listening_choice"),
     audioMediaId: documentIdSchema,
     options: z.array(choiceOptionSchema).min(2).max(8),
+    scoringDefinition: exactChoiceScoringSchema.optional(),
   })
   .strict();
 
@@ -279,12 +302,7 @@ export const publicActivitySchema = z
     if ("tokens" in activity) addDuplicateIdIssue(activity.tokens, "tokens", context);
   });
 
-const exactChoiceScoringSchema = z
-  .object({
-    kind: z.literal("exact_single_choice"),
-    correctOptionId: stableIdSchema,
-  })
-  .strict();
+
 
 const singleChoiceDraftSchema = z
   .object({

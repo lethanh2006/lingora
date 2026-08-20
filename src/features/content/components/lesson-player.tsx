@@ -75,6 +75,7 @@ type Vocabulary = {
 
 export type LessonPlayerProps = {
   lessonRevision: {
+    id: string;
     lessonId: string;
     courseId: string;
     programId: string;
@@ -190,7 +191,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lessonId: lessonRevision.lessonId,
-          lessonRevisionId: lessonRevision.lessonId,
+          lessonRevisionId: lessonRevision.id,
           status,
           lastActivityId: lastActId,
           boundedActivityState: updatedState,
@@ -211,7 +212,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
       console.error("Autosave error", err);
       setSaveStatus("error");
     }
-  }, [lessonRevision.lessonId, activities, timeSpent]);
+  }, [lessonRevision.id, lessonRevision.lessonId, activities, timeSpent]);
 
   const handleStart = () => {
     if (activities.length > 0) {
@@ -239,12 +240,12 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
       correct = true;
     } else if (currentActivity.type === "single_choice" || currentActivity.type === "listening_choice") {
       const selected = answers[currentActivity.id] as string;
-      const target = currentActivity.scoringDefinition.correctOptionId;
-      correct = selected === target;
+      const target = currentActivity.scoringDefinition?.correctOptionId;
+      correct = !currentActivity.scoringDefinition || selected === target;
     } else if (currentActivity.type === "gap_fill") {
       const userAnswers = (answers[currentActivity.id] || {}) as Record<string, string>;
-      const answerDefs = currentActivity.scoringDefinition.answers || [];
-      correct = answerDefs.every((def) => {
+      const answerDefs = currentActivity.scoringDefinition?.answers || [];
+      correct = !currentActivity.scoringDefinition || answerDefs.every((def) => {
         const userText = (userAnswers[def.gapId] || "");
         const normUser = normalizeText(userText, lessonRevision.languageId || "", {
           caseSensitive: def.caseSensitive,
@@ -263,10 +264,11 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
         return acceptable.includes(normUser);
       });
     } else if (currentActivity.type === "reorder_tokens") {
-      const target = currentActivity.scoringDefinition.correctTokenIds || [];
+      const target = currentActivity.scoringDefinition?.correctTokenIds || [];
       correct =
-        reorderSelected.length === target.length &&
-        reorderSelected.every((val, index) => val === target[index]);
+        !currentActivity.scoringDefinition ||
+        (reorderSelected.length === target.length &&
+          reorderSelected.every((val, index) => val === target[index]));
     }
 
     setIsCorrect(correct);
@@ -633,7 +635,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                 {currentActivity.options?.map((opt) => {
                   const selected = (answers[currentActivity.id] as string) === opt.id;
                   const isAnswerCorrect =
-                    currentActivity.scoringDefinition.correctOptionId === opt.id;
+                    currentActivity.scoringDefinition?.correctOptionId === opt.id;
 
                   let borderClass = "border-border hover:bg-muted/30";
                   if (selected && !isChecked) borderClass = "border-primary bg-primary/5 ring-2 ring-primary/20";
@@ -682,7 +684,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                     const userAnswers = (answers[currentActivity.id] || {}) as Record<string, string>;
                     const val = userAnswers[gapId] || "";
 
-                    const def = currentActivity.scoringDefinition.answers?.find(
+                    const def = currentActivity.scoringDefinition?.answers?.find(
                       (a) => a.gapId === gapId
                     );
                     const isGapCorrect =
@@ -740,7 +742,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                 {isChecked && !isCorrect && (
                   <div className="p-3 bg-red-50 text-red-800 rounded-xl text-xs space-y-1">
                     <p className="font-semibold">Đáp án đúng là:</p>
-                    {currentActivity.scoringDefinition.answers?.map((ans, i) => (
+                    {currentActivity.scoringDefinition?.answers?.map((ans, i) => (
                       <p key={i}>
                         • Gap <strong>{ans.gapId}</strong>: {ans.acceptedAnswers.join(" hoặc ")}
                       </p>
@@ -810,7 +812,7 @@ export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {
                   <div className="p-3 bg-red-50 text-red-800 rounded-xl text-xs">
                     Đáp án đúng:{" "}
                     <strong className="font-mono text-sm text-foreground">
-                      {currentActivity.scoringDefinition.correctTokenIds
+                      {currentActivity.scoringDefinition?.correctTokenIds
                         ?.map((id) => {
                           const tokenText = currentActivity.tokens?.find((t) => t.id === id)?.text || "";
                           return tokenText.replace(/([^\s[\]]+)\[([^[\]]+)\]/g, "$1");

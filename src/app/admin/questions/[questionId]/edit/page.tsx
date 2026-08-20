@@ -32,15 +32,14 @@ export default async function AdminEditQuestionPage({ params }: EditQuestionPage
   const versionsSnap = await db
     .collection(COLLECTIONS.questionVersions)
     .where("questionId", "==", questionId)
-    .orderBy("version", "desc")
-    .limit(1)
     .get();
 
   if (versionsSnap.empty) {
     notFound();
   }
 
-  const latestVersionDoc = versionsSnap.docs[0];
+  const sortedDocs = [...versionsSnap.docs].sort((a, b) => b.data().version - a.data().version);
+  const latestVersionDoc = sortedDocs[0];
   const latestVersion = latestVersionDoc.data();
 
   const mappedQuestion = {

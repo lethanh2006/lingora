@@ -159,17 +159,24 @@ export function createAssessmentRepository(db: Firestore) {
         .collection(COLLECTIONS.examFormVersions)
         .where("blueprintId", "==", blueprintId)
         .where("status", "==", "published")
-        .orderBy("publishedAt", "desc")
-        .limit(ASSESSMENT_QUERY_CARDS.getLatestPublishedFormVersion.limit)
         .get();
       if (snapshot.empty) return null;
 
-      const document = snapshot.docs[0];
-      const formVersion = examFormVersionSchema.parse(document.data());
-      if (formVersion.id !== document.id) {
-        throw new Error(`Exam form ${document.ref.path} có field id không khớp path`);
-      }
-      return formVersion;
+      const docs = snapshot.docs.map((doc) => {
+        const formVersion = examFormVersionSchema.parse(doc.data());
+        if (formVersion.id !== doc.id) {
+          throw new Error(`Exam form ${doc.ref.path} có field id không khớp path`);
+        }
+        return formVersion;
+      });
+
+      docs.sort((a, b) => {
+        const timeA = a.publishedAt.seconds + a.publishedAt.nanoseconds / 1e9;
+        const timeB = b.publishedAt.seconds + b.publishedAt.nanoseconds / 1e9;
+        return timeB - timeA;
+      });
+
+      return docs[0];
     },
 
     async saveBlueprint(

@@ -154,15 +154,15 @@ export function createPublishService(firestore: Firestore) {
 
         const revisionsColl = firestore.collection(COLLECTIONS.publishedLessonRevisions);
         const latestRevisionQuery = revisionsColl
-          .where("lessonId", "==", lessonId)
-          .orderBy("revisionNumber", "desc")
-          .limit(1);
+          .where("lessonId", "==", lessonId);
         const querySnap = await transaction.get(latestRevisionQuery);
 
         let revisionNumber = 1;
         let latestRevision: PublishedLessonRevision | null = null;
         if (!querySnap.empty) {
-          latestRevision = publishedLessonRevisionSchema.parse(querySnap.docs[0].data());
+          const docs = querySnap.docs.map(d => publishedLessonRevisionSchema.parse({ id: d.id, ...d.data() }));
+          docs.sort((a, b) => b.revisionNumber - a.revisionNumber);
+          latestRevision = docs[0];
           revisionNumber = latestRevision.revisionNumber + 1;
         }
 
@@ -290,9 +290,7 @@ export function createPublishService(firestore: Firestore) {
             const revSnap = await transaction.get(
               firestore
                 .collection(COLLECTIONS.publishedLessonRevisions)
-                .where("lessonId", "==", lessonDoc.id)
-                .orderBy("revisionNumber", "desc")
-                .limit(1),
+                .where("lessonId", "==", lessonDoc.id),
             );
 
             if (revSnap.empty) {
@@ -300,21 +298,23 @@ export function createPublishService(firestore: Firestore) {
                 `Lesson ${lessonDoc.id} chưa được publish revision nào`
               );
             }
-            lessonRevisionMap[lessonDoc.id] = revSnap.docs[0].id;
+            const revDocs = revSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+            revDocs.sort((a, b) => b.revisionNumber - a.revisionNumber);
+            lessonRevisionMap[lessonDoc.id] = revDocs[0].id;
           }
         }
 
         const revisionsColl = firestore.collection(COLLECTIONS.publishedCourseRevisions);
         const latestRevisionQuery = revisionsColl
-          .where("courseId", "==", courseId)
-          .orderBy("revisionNumber", "desc")
-          .limit(1);
+          .where("courseId", "==", courseId);
         const querySnap = await transaction.get(latestRevisionQuery);
 
         let revisionNumber = 1;
         let latestRevision = null;
         if (!querySnap.empty) {
-          latestRevision = courseRevisionSchema.parse(querySnap.docs[0].data());
+          const docs = querySnap.docs.map(d => courseRevisionSchema.parse({ id: d.id, ...d.data() }));
+          docs.sort((a, b) => b.revisionNumber - a.revisionNumber);
+          latestRevision = docs[0];
           revisionNumber = latestRevision.revisionNumber + 1;
         }
 

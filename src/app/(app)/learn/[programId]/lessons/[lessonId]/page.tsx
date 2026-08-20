@@ -66,6 +66,7 @@ export default async function LessonPage({
 
   // Make a clean payload to pass to the client component
   const lessonRevision = {
+    id: revisionDoc.id,
     lessonId: revision.lessonId,
     courseId: revision.courseId,
     programId: revision.programId,

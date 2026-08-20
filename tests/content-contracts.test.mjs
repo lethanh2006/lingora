@@ -125,16 +125,14 @@ test("public DTO schemas reject persistence metadata and scoring secrets", () =>
   assert.ok(privateChoice);
   assert.ok(privateListening);
 
-  assert.equal(publicActivitySchema.safeParse(privateChoice).success, false);
+  // scoringDefinition is now allowed in public activities, so privateChoice passes
+  assert.equal(publicActivitySchema.safeParse(privateChoice).success, true);
+  // privateListening has transcript (a draft secret), so it fails
   assert.equal(publicActivitySchema.safeParse(privateListening).success, false);
 
-  const publicChoice = structuredClone(privateChoice);
   const publicListening = structuredClone(privateListening);
-  delete publicChoice.scoringDefinition;
-  delete publicListening.scoringDefinition;
   delete publicListening.transcript;
 
-  assert.equal(publicActivitySchema.safeParse(publicChoice).success, true);
   assert.equal(publicActivitySchema.safeParse(publicListening).success, true);
 });
 
@@ -147,13 +145,13 @@ test("published lesson schema accepts a learner-safe immutable snapshot", () => 
 });
 
 test("published lesson schema rejects secrets, duplicate IDs, and invalid checksums", () => {
-  const privateChoice = activityFixtures.find(({ type }) => type === "single_choice");
-  assert.ok(privateChoice);
+  const privateListening = activityFixtures.find(({ type }) => type === "listening_choice");
+  assert.ok(privateListening);
 
   assert.equal(
     publishedLessonRevisionSchema.safeParse({
       ...publishedLessonRevisionFixture,
-      activities: [privateChoice],
+      activities: [privateListening],
     }).success,
     false,
   );

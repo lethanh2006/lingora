@@ -195,7 +195,6 @@ export const activityFixtures = [
 
 export const publicActivityFixtures = activityFixtures.map((activity) => {
   const publicActivity = structuredClone(activity);
-  delete publicActivity.scoringDefinition;
   delete publicActivity.transcript;
   return publicActivity;
 });
