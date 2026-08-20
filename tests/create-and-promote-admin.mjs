@@ -32,7 +32,7 @@ async function run() {
     uid = userRecord.uid;
     console.log("Created new user in Auth with UID:", uid);
   } catch (error) {
-    if (error.code === "auth/email-already-in-use") {
+    if (error.code === "auth/email-already-in-use" || error.code === "auth/email-already-exists") {
       const userRecord = await auth.getUserByEmail("admin@lingora.com");
       uid = userRecord.uid;
       console.log("User already exists in Auth with UID:", uid);
