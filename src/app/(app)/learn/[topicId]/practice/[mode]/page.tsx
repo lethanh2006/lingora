@@ -9,10 +9,10 @@ import { getAdminDb } from "@/lib/firebase/admin";
 export default async function PracticePage({
   params,
 }: {
-  params: Promise<{ programId: string; mode: string }>;
+  params: Promise<{ topicId: string; mode: string }>;
 }) {
   await requireUser();
-  const { programId: topicId, mode: rawMode } = await params;
+  const { topicId, mode: rawMode } = await params;
   const modeResult = practiceModeSchema.safeParse(rawMode);
   if (!modeResult.success) notFound();
 

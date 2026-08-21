@@ -18,10 +18,10 @@ const games = [
 export default async function TopicDetailPage({
   params,
 }: {
-  params: Promise<{ programId: string }>;
+  params: Promise<{ topicId: string }>;
 }) {
   await requireUser();
-  const { programId: topicId } = await params;
+  const { topicId } = await params;
   const repository = createVocabularyRepository(getAdminDb());
   const [topic, words] = await Promise.all([repository.getTopic(topicId), repository.listWords(topicId)]);
   if (!topic) notFound();
