@@ -1,236 +1,83 @@
-import { AggregateField, Timestamp } from "firebase-admin/firestore";
-import { BookOpen, Clock3, Flame, Sparkles, CheckCircle2 } from "lucide-react";
+import { FieldPath } from "firebase-admin/firestore";
+import { Brain, Flame, Gamepad2, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MockDataSeederButton } from "@/features/dev/components/mock-data-seeder-button";
+import { Card, CardContent } from "@/components/ui/card";
+import { TopicCard } from "@/features/vocabulary/components/topic-card";
+import { createVocabularyProgressService, getVietnamDateId } from "@/features/vocabulary/vocabulary-progress.service";
+import { createVocabularyRepository } from "@/features/vocabulary/vocabulary.repository";
+import { calculatePracticeStreak } from "@/features/vocabulary/vocabulary-stats";
 import { requireUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { COLLECTIONS } from "@/lib/firebase/collections";
-
-function calculateStreak(dates: string[]): number {
-  if (dates.length === 0) return 0;
-
-  // Sort dates descending
-  const sortedDates = [...dates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-  // Get today and yesterday date strings in GMT+7
-  const tzOffset = 7 * 60 * 60 * 1000;
-  const todayStr = new Date(Date.now() + tzOffset).toISOString().split("T")[0];
-  const yesterdayStr = new Date(Date.now() + tzOffset - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
-  const newestDateStr = sortedDates[0];
-  if (newestDateStr !== todayStr && newestDateStr !== yesterdayStr) {
-    return 0;
-  }
-
-  let streak = 0;
-  // Start checking from the newest date in sortedDates
-  const checkDate = new Date(newestDateStr);
-
-  while (true) {
-    const checkStr = checkDate.toISOString().split("T")[0];
-    if (dates.includes(checkStr)) {
-      streak++;
-      // Subtract 1 day
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-}
+import { COLLECTIONS, USER_SUBCOLLECTIONS } from "@/lib/firebase/collections";
 
 export default async function DashboardPage() {
   const user = await requireUser();
   const db = getAdminDb();
-
-  // Fetch student progress using aggregation to avoid document scanning
-  const progressColl = db
-    .collection(COLLECTIONS.users)
-    .doc(user.uid)
-    .collection("lessonProgress");
-
-  const completedCountSnap = await progressColl
-    .where("status", "==", "completed")
-    .count()
-    .get();
-
-  const completedLessons = completedCountSnap.data().count;
-
-  const timeSumSnap = await progressColl
-    .aggregate({
-      totalTime: AggregateField.sum("timeSpentSeconds"),
-    })
-    .get();
-
-  const totalTimeSpentSeconds = timeSumSnap.data().totalTime || 0;
-
-  const totalTimeSpentMinutes = Math.round(totalTimeSpentSeconds / 60);
-
-  // Fetch daily stats to compute streak
-  const dailyStatsSnap = await db
-    .collection(COLLECTIONS.users)
-    .doc(user.uid)
-    .collection("dailyStats")
-    .get();
-
-  const dates = dailyStatsSnap.docs.map((doc) => doc.id);
-  const streak = calculateStreak(dates);
-
-  // Fetch active enrollment to support the continue-learning card
-  const enrollmentsSnap = await db
-    .collection(COLLECTIONS.users)
-    .doc(user.uid)
-    .collection("enrollments")
-    .where("status", "==", "active")
-    .limit(1)
-    .get();
-
-  let activeEnrollment = null;
-  let activeProgram = null;
-
-  if (enrollmentsSnap.empty) {
-    // First time user — send to onboarding
-    redirect("/onboarding");
-  }
-
-  if (!enrollmentsSnap.empty) {
-    const doc = enrollmentsSnap.docs[0];
-    activeEnrollment = { id: doc.id, ...doc.data() } as any;
-    const programSnap = await db
-      .collection(COLLECTIONS.programs)
-      .doc(activeEnrollment.programId)
-      .get();
-    if (programSnap.exists) {
-      activeProgram = { id: programSnap.id, ...programSnap.data() } as any;
-    }
-  }
-
-  // Fetch due reviews count using cheap aggregate count query
-  const now = Timestamp.now();
-  const dueCountSnap = await db
-    .collection(COLLECTIONS.users)
-    .doc(user.uid)
-    .collection("reviewItems")
-    .where("dueAt", "<=", now)
-    .count()
-    .get();
-  const dueReviewsCount = dueCountSnap.data().count;
+  const [topics, progressItems, practiceDays] = await Promise.all([
+    createVocabularyRepository(db).listTopics(),
+    createVocabularyProgressService(db).listProgress(user.uid),
+    db.collection(COLLECTIONS.users).doc(user.uid).collection(USER_SUBCOLLECTIONS.practiceDays).orderBy(FieldPath.documentId(), "desc").limit(90).get(),
+  ]);
+  const progressByTopic = new Map(progressItems.map((progress) => [progress.topicId, progress]));
+  const masteredWordIds = new Set(progressItems.flatMap((progress) => progress.masteredWordIds));
+  const sessionsCompleted = progressItems.reduce((total, progress) => total + progress.sessionsCompleted, 0);
+  const activeDateIds = practiceDays.docs.filter((document) => Number(document.data().sessionsCompleted ?? 0) > 0).map((document) => document.id);
+  const streak = calculatePracticeStreak(activeDateIds, getVietnamDateId());
+  const hasProgress = sessionsCompleted > 0;
 
   const stats = [
-    { label: "Chuỗi ngày học", value: `${streak} ngày`, icon: Flame },
-    { label: "Bài đã hoàn thành", value: String(completedLessons), icon: BookOpen },
-    { label: "Thời gian học", value: `${totalTimeSpentMinutes} phút`, icon: Clock3 },
+    { label: "Chuỗi ngày luyện", value: `${streak} ngày`, icon: Flame },
+    { label: "Từ đã ghi nhớ", value: String(masteredWordIds.size), icon: Brain },
+    { label: "Phiên đã luyện", value: String(sessionsCompleted), icon: Gamepad2 },
   ];
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-primary">Dashboard</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Xin chào, {user.displayName}</h1>
-          <p className="mt-2 text-muted-foreground">Sẵn sàng cho buổi học đầu tiên của bạn.</p>
-        </div>
-        <MockDataSeederButton />
-      </div>
+      <header>
+        <p className="text-sm font-semibold text-primary">Trang chủ</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight">Xin chào, {user.displayName}</h1>
+        <p className="mt-2 text-muted-foreground">Mỗi ngày một chủ đề, mỗi phiên vài từ mới.</p>
+      </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map(({ label, value, icon: Icon }) => (
           <Card key={label}>
             <CardContent className="flex items-center gap-4 p-5">
-              <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="size-5" />
-              </span>
-              <div>
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="text-xl font-semibold">{value}</p>
-              </div>
+              <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5" /></span>
+              <div><p className="text-sm text-muted-foreground">{label}</p><p className="text-xl font-bold">{value}</p></div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Due reviews notification card */}
-        {dueReviewsCount > 0 ? (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <Sparkles className="size-5" />
-                Đến hạn ôn tập
-              </CardTitle>
-              <CardDescription>
-                Bạn đang có <strong className="text-foreground">{dueReviewsCount} từ vựng</strong> cần ôn tập lại theo phương pháp lặp lại ngắt quãng (SRS).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/review" className={buttonVariants()}>
-                Ôn tập ngay
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-muted-foreground flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-green-500" />
-                Đã ôn tập xong
-              </CardTitle>
-              <CardDescription>
-                Tất cả từ vựng đều được ghi nhớ tốt. Hôm nay bạn không có từ nào đến hạn cần ôn tập.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/review" className={buttonVariants({ variant: "outline" })}>
-                Xem danh sách từ
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+      <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 to-background">
+        <CardContent className="flex flex-col items-start justify-between gap-5 p-6 sm:flex-row sm:items-center">
+          <div className="flex gap-4">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground"><Sparkles className="size-6" /></span>
+            <div>
+              <h2 className="text-xl font-bold">{hasProgress ? "Tiếp tục luyện từ" : "Bắt đầu từ con số 0"}</h2>
+              <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
+                {hasProgress ? "Chọn chủ đề bên dưới hoặc đổi trò chơi để củng cố các từ đã gặp." : "Tài khoản mới chưa có dữ liệu hoàn thành sẵn. Chọn một chủ đề và bắt đầu bằng trò lật thẻ."}
+              </p>
+            </div>
+          </div>
+          <Link href={topics[0] ? `/learn/${topics[0].id}` : "/learn"} className={buttonVariants({ size: "lg" })}>{hasProgress ? "Học tiếp" : "Chọn chủ đề"}</Link>
+        </CardContent>
+      </Card>
 
-        {/* Continue Learning card */}
-        {activeEnrollment && activeProgram ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Tiếp tục học tập</CardTitle>
-              <CardDescription>
-                Tiếp tục tiến trình của bạn trong chương trình{" "}
-                <strong className="text-foreground">{activeProgram.title}</strong>.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link
-                href={
-                  activeEnrollment.currentCourseId
-                    ? `/learn/${activeEnrollment.programId}/courses/${activeEnrollment.currentCourseId}`
-                    : `/learn/${activeEnrollment.programId}`
-                }
-                className={buttonVariants()}
-              >
-                Học tiếp
-              </Link>
-            </CardContent>
-          </Card>
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div><p className="text-sm font-semibold text-primary">Học theo chủ đề</p><h2 className="mt-1 text-2xl font-bold">Chủ đề dành cho bạn</h2></div>
+          <Link href="/learn" className="text-sm font-semibold text-primary hover:underline">Xem tất cả</Link>
+        </div>
+        {topics.length === 0 ? (
+          <div className="rounded-2xl border border-dashed bg-background p-10 text-center"><p className="font-semibold">Chưa có chủ đề đang hiển thị</p><p className="mt-1 text-sm text-muted-foreground">Quản trị viên có thể tạo chủ đề trong trang quản trị.</p>{user.role === "admin" && <Link href="/admin/topics" className={`${buttonVariants()} mt-4`}>Tạo chủ đề</Link>}</div>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Bắt đầu lộ trình đầu tiên</CardTitle>
-              <CardDescription>
-                Khám phá chương trình và chọn khóa học phù hợp với mục tiêu của bạn.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/learn" className={buttonVariants()}>
-                Xem chương trình học
-              </Link>
-            </CardContent>
-          </Card>
+          <div className="grid gap-5 lg:grid-cols-2">{topics.slice(0, 6).map((topic) => <TopicCard key={topic.id} topic={topic} progress={progressByTopic.get(topic.id)} />)}</div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

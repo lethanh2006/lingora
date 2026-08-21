@@ -22,8 +22,10 @@ export function getVietnamDateId(now = new Date()): string {
 }
 
 export function toTopicProgressDto(progress: TopicProgress): TopicProgressDto {
-  const { firstPracticedAt: _first, lastPracticedAt: _last, ...dto } = progress;
-  return dto;
+  const dto = { ...progress } as Partial<TopicProgress>;
+  delete dto.firstPracticedAt;
+  delete dto.lastPracticedAt;
+  return dto as TopicProgressDto;
 }
 
 export function createVocabularyProgressService(db: Firestore) {
@@ -67,8 +69,8 @@ export function createVocabularyProgressService(db: Firestore) {
         const existing = progressSnapshot.exists
           ? topicProgressSchema.parse(progressSnapshot.data())
           : null;
-        const completedModes = new Set(existing?.completedModes ?? []);
-        completedModes.add(input.mode);
+        const practicedModes = new Set(existing?.practicedModes ?? []);
+        practicedModes.add(input.mode);
         const masteredWordIds = new Set(existing?.masteredWordIds ?? []);
         input.masteredWordIds.forEach((wordId) => masteredWordIds.add(wordId));
         const score = Math.round((input.correctAnswers / input.totalAnswers) * 100);
@@ -76,7 +78,7 @@ export function createVocabularyProgressService(db: Firestore) {
         const nextProgress = topicProgressSchema.parse({
           schemaVersion: 1,
           topicId: input.topicId,
-          completedModes: [...completedModes],
+          practicedModes: [...practicedModes],
           sessionsCompleted: (existing?.sessionsCompleted ?? 0) + 1,
           correctAnswers: (existing?.correctAnswers ?? 0) + input.correctAnswers,
           totalAnswers: (existing?.totalAnswers ?? 0) + input.totalAnswers,

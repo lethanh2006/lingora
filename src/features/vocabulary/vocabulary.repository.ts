@@ -24,13 +24,17 @@ function parseDocument<T extends { id: string }>(
 }
 
 export function toTopicDto(topic: VocabularyTopic): VocabularyTopicDto {
-  const { createdAt: _createdAt, updatedAt: _updatedAt, ...dto } = topic;
-  return dto;
+  const dto = { ...topic } as Partial<VocabularyTopic>;
+  delete dto.createdAt;
+  delete dto.updatedAt;
+  return dto as VocabularyTopicDto;
 }
 
 export function toWordDto(word: VocabularyWord): VocabularyWordDto {
-  const { createdAt: _createdAt, updatedAt: _updatedAt, ...dto } = word;
-  return dto;
+  const dto = { ...word } as Partial<VocabularyWord>;
+  delete dto.createdAt;
+  delete dto.updatedAt;
+  return dto as VocabularyWordDto;
 }
 
 export function createVocabularyRepository(db: Firestore) {

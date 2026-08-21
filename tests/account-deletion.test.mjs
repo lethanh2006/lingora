@@ -96,6 +96,12 @@ test("deletion service deletes user document and all subcollections recursively 
   const statsColl = userDocRef.collection("dailyStats");
   await statsColl.doc("2026-08-19").set({ minutesSpended: 15 });
 
+  const topicProgressColl = userDocRef.collection("topicProgress");
+  await topicProgressColl.doc("greetings").set({ sessionsCompleted: 2 });
+
+  const practiceDaysColl = userDocRef.collection("practiceDays");
+  await practiceDaysColl.doc("2026-08-20").set({ sessionsCompleted: 1 });
+
   // Attempts and nested sections
   const attemptsColl = userDocRef.collection("attempts");
   const attemptDocRef = attemptsColl.doc("attempt-1");
@@ -110,6 +116,8 @@ test("deletion service deletes user document and all subcollections recursively 
   assert.equal((await progressColl.get()).size, 1);
   assert.equal((await reviewsColl.get()).size, 1);
   assert.equal((await statsColl.get()).size, 1);
+  assert.equal((await topicProgressColl.get()).size, 1);
+  assert.equal((await practiceDaysColl.get()).size, 1);
   assert.equal((await attemptsColl.get()).size, 1);
   assert.equal((await sectionsColl.get()).size, 1);
 
@@ -122,6 +130,8 @@ test("deletion service deletes user document and all subcollections recursively 
   assert.equal((await progressColl.get()).empty, true);
   assert.equal((await reviewsColl.get()).empty, true);
   assert.equal((await statsColl.get()).empty, true);
+  assert.equal((await topicProgressColl.get()).empty, true);
+  assert.equal((await practiceDaysColl.get()).empty, true);
   assert.equal((await attemptsColl.get()).empty, true);
   assert.equal((await sectionsColl.get()).empty, true);
 });

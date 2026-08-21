@@ -41,6 +41,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /vocabularyTopics/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /vocabularyWords/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     match /examCatalog/{documentId} {
       allow read: if isSignedIn();
       allow write: if false;
@@ -109,6 +119,16 @@ service cloud.firestore {
       }
 
       match /dailyStats/{documentId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /topicProgress/{documentId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /practiceDays/{documentId} {
         allow read: if isOwner(userId);
         allow write: if false;
       }

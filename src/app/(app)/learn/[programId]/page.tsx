@@ -1,68 +1,50 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookOpen } from "lucide-react";
+import { ArrowLeft, Blocks, GalleryHorizontalEnd, TextCursorInput } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { CatalogEmptyState } from "@/features/catalog/components/catalog-empty-state";
-import { CourseCard } from "@/features/catalog/components/course-card";
-import { createCatalogRepository } from "@/features/catalog/catalog.repository";
-import { EnrollmentAction } from "@/features/enrollment/components/enrollment-action";
-import { createEnrollmentService } from "@/features/enrollment/enrollment.service";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SpeakButton } from "@/features/vocabulary/components/speak-button";
+import { createVocabularyRepository } from "@/features/vocabulary/vocabulary.repository";
 import { requireUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 
-export default async function ProgramPage({
+const games = [
+  { mode: "flashcards", title: "Lật thẻ", description: "Nhìn từ, đoán nghĩa rồi lật thẻ để kiểm tra.", icon: GalleryHorizontalEnd },
+  { mode: "matching", title: "Ghép từ", description: "Ghép mỗi từ với nghĩa tiếng Việt tương ứng.", icon: Blocks },
+  { mode: "fill", title: "Điền từ", description: "Nhìn nghĩa và chủ động gõ lại từ cần nhớ.", icon: TextCursorInput },
+] as const;
+
+export default async function TopicDetailPage({
   params,
 }: {
   params: Promise<{ programId: string }>;
 }) {
-  const [user, { programId }] = await Promise.all([requireUser(), params]);
-  const firestore = getAdminDb();
-  const catalogRepository = createCatalogRepository(firestore);
-  const enrollmentService = createEnrollmentService(firestore);
-  const [program, courses, enrollment] = await Promise.all([
-    catalogRepository.getPublishedProgram(programId),
-    catalogRepository.listPublishedCourses(programId),
-    enrollmentService.getEnrollment(user.uid, programId),
-  ]);
-  if (!program) notFound();
+  await requireUser();
+  const { programId: topicId } = await params;
+  const repository = createVocabularyRepository(getAdminDb());
+  const [topic, words] = await Promise.all([repository.getTopic(topicId), repository.listWords(topicId)]);
+  if (!topic) notFound();
 
   return (
     <div className="space-y-8">
       <header>
-        <Link href="/learn" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-          ← Tất cả chương trình
-        </Link>
-        <p className="mt-6 text-sm font-semibold text-primary">
-          {program.frameworkCode.toUpperCase()} · {program.frameworkVersion}
-        </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">{program.title}</h1>
-        <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">{program.description}</p>
+        <Link href="/learn" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Tất cả chủ đề</Link>
+        <div className="mt-4 flex items-start gap-4">
+          <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-primary/10 text-4xl">{topic.icon}</span>
+          <div><p className="text-sm font-semibold text-primary">{topic.wordCount} từ vựng</p><h1 className="mt-1 text-3xl font-bold tracking-tight">{topic.title}</h1><p className="mt-2 max-w-2xl text-muted-foreground">{topic.description}</p></div>
+        </div>
       </header>
 
-      <EnrollmentAction programId={program.id} isEnrolled={enrollment !== null} />
+      {words.length === 0 ? (
+        <div className="rounded-2xl border border-dashed bg-background p-10 text-center"><p className="font-semibold">Chủ đề chưa có từ vựng</p><p className="mt-1 text-sm text-muted-foreground">Hãy quay lại sau khi quản trị viên thêm nội dung.</p></div>
+      ) : (
+        <>
+          <section className="space-y-4"><div><p className="text-sm font-semibold text-primary">Chọn cách luyện</p><h2 className="mt-1 text-2xl font-bold">Ba trò chơi từ cùng danh sách từ</h2></div><div className="grid gap-4 md:grid-cols-3">{games.map(({ mode, title, description, icon: Icon }) => <Card key={mode} className="group transition hover:border-primary/30 hover:shadow-md"><CardHeader><span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5" /></span><CardTitle className="pt-3 text-lg">{title}</CardTitle></CardHeader><CardContent className="space-y-4"><p className="min-h-10 text-sm text-muted-foreground">{description}</p><Link href={`/learn/${topic.id}/practice/${mode}`} className={`${buttonVariants()} w-full`}>Bắt đầu</Link></CardContent></Card>)}</div></section>
 
-      <section aria-labelledby="course-heading" className="space-y-4">
-        <div>
-          <h2 id="course-heading" className="text-2xl font-semibold tracking-tight">Khóa học</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Học theo thứ tự từ nền tảng đến ứng dụng.</p>
-        </div>
-        {courses.length === 0 ? (
-          <CatalogEmptyState
-            icon={BookOpen}
-            title="Chưa có khóa học được xuất bản"
-            description="Lộ trình đã sẵn sàng nhưng nội dung khóa học vẫn đang được kiểm duyệt."
-          />
-        ) : (
-          <div className="grid gap-4">
-            {courses.map((course) => (
-              <CourseCard key={course.id} course={course} programId={program.id} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <Link href="/learn" className={buttonVariants({ variant: "outline" })}>Chọn chương trình khác</Link>
+          <section className="space-y-4"><div><p className="text-sm font-semibold text-primary">Danh sách từ</p><h2 className="mt-1 text-2xl font-bold">Xem trước nội dung</h2></div><div className="grid gap-3 sm:grid-cols-2">{words.map((word, index) => <Card key={word.id}><CardContent className="flex items-start gap-3 p-4"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-xs font-bold text-muted-foreground">{index + 1}</span><div className="min-w-0 flex-1"><div className="flex items-center gap-1"><p className="text-lg font-bold">{word.term}</p><SpeakButton text={word.term} languageCode={topic.languageCode} /></div>{word.pronunciation && <p className="text-xs text-muted-foreground">{word.pronunciation}</p>}<p className="mt-1 text-sm font-semibold text-primary">{word.meaning}</p>{word.example && <p className="mt-2 text-xs leading-5 text-muted-foreground">{word.example}</p>}</div></CardContent></Card>)}</div></section>
+        </>
+      )}
     </div>
   );
 }

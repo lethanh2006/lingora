@@ -34,6 +34,8 @@ const publicDocumentPaths = [
   `${COLLECTIONS.publishedCourseRevisions}/course-revision-1`,
   `${COLLECTIONS.publishedLessonRevisions}/lesson-revision-1`,
   `${COLLECTIONS.lexemes}/lexeme-hello`,
+  `${COLLECTIONS.vocabularyTopics}/greetings`,
+  `${COLLECTIONS.vocabularyWords}/hello`,
   `${COLLECTIONS.examCatalog}/exam-a1`,
   `${COLLECTIONS.sourceAttributions}/source-1`,
 ];
@@ -64,6 +66,8 @@ const ownerDocumentPaths = [
   `${COLLECTIONS.users}/${ownerId}/${USER_SUBCOLLECTIONS.lessonProgress}/hello-and-goodbye`,
   `${COLLECTIONS.users}/${ownerId}/${USER_SUBCOLLECTIONS.reviewItems}/review-1`,
   `${COLLECTIONS.users}/${ownerId}/${USER_SUBCOLLECTIONS.dailyStats}/2026-08-14`,
+  `${COLLECTIONS.users}/${ownerId}/${USER_SUBCOLLECTIONS.topicProgress}/greetings`,
+  `${COLLECTIONS.users}/${ownerId}/${USER_SUBCOLLECTIONS.practiceDays}/2026-08-14`,
   `${COLLECTIONS.users}/${ownerId}/${USER_SUBCOLLECTIONS.attempts}/attempt-1`,
   `${COLLECTIONS.users}/${ownerId}/${USER_SUBCOLLECTIONS.attempts}/attempt-1/${USER_SUBCOLLECTIONS.sections}/section-1`,
 ];

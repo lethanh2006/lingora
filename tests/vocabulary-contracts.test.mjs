@@ -8,6 +8,7 @@ import {
 } from "../src/features/vocabulary/schemas/vocabulary.schema.ts";
 import { createStarterVocabularySeed } from "../src/features/vocabulary/seed/starter-vocabulary.ts";
 import { slugifyTopicTitle } from "../src/features/vocabulary/vocabulary-admin.service.ts";
+import { calculatePracticeStreak } from "../src/features/vocabulary/vocabulary-stats.ts";
 import { timestamp } from "./fixtures/content.mjs";
 
 test("starter vocabulary contains visible topics and words", () => {
@@ -56,4 +57,11 @@ test("practice session only accepts mastered words from the studied set", () => 
 test("topic title is converted to a stable Vietnamese-safe slug", () => {
   assert.equal(slugifyTopicTitle("Đồ ăn & Thức uống"), "do-an-thuc-uong");
   assert.equal(slugifyTopicTitle("  日本語  "), "chu-de");
+});
+
+test("practice streak starts from today or yesterday and ignores duplicates", () => {
+  assert.equal(calculatePracticeStreak([], "2026-08-21"), 0);
+  assert.equal(calculatePracticeStreak(["2026-08-21", "2026-08-20", "2026-08-20", "2026-08-19"], "2026-08-21"), 3);
+  assert.equal(calculatePracticeStreak(["2026-08-20", "2026-08-19"], "2026-08-21"), 2);
+  assert.equal(calculatePracticeStreak(["2026-08-18"], "2026-08-21"), 0);
 });

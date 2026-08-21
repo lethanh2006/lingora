@@ -25,12 +25,14 @@ export function createDeletionService(firestore: Firestore) {
         await attemptDoc.ref.delete();
       }
 
-      // 2. Delete enrollments, lessonProgress, reviewItems, dailyStats
+      // 2. Delete all flat user-owned learning state.
       const otherSubcollections = [
         USER_SUBCOLLECTIONS.enrollments,
         USER_SUBCOLLECTIONS.lessonProgress,
         USER_SUBCOLLECTIONS.reviewItems,
         USER_SUBCOLLECTIONS.dailyStats,
+        USER_SUBCOLLECTIONS.topicProgress,
+        USER_SUBCOLLECTIONS.practiceDays,
       ];
 
       for (const subName of otherSubcollections) {

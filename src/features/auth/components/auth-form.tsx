@@ -23,12 +23,12 @@ type AuthMode = "login" | "register" | "forgot-password";
 const copy = {
   login: {
     title: "Chào mừng trở lại",
-    description: "Đăng nhập để tiếp tục hành trình học của bạn.",
+    description: "Đăng nhập để tiếp tục luyện từ vựng.",
     submit: "Đăng nhập",
   },
   register: {
     title: "Tạo tài khoản",
-    description: "Bắt đầu học ngôn ngữ cùng Lingora.",
+    description: "Chọn chủ đề và học những từ đầu tiên cùng Lingora.",
     submit: "Đăng ký",
   },
   "forgot-password": {

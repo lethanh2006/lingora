@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { BookOpen, LayoutDashboard, Settings, ShieldCheck } from "lucide-react";
+import { Gamepad2, LayoutDashboard, LibraryBig, Settings, ShieldCheck } from "lucide-react";
 
 import { Logo } from "@/components/layout/logo";
 import { LogoutButton } from "@/features/auth/components/logout-button";
@@ -8,37 +8,32 @@ import { getCurrentUser } from "@/lib/auth/session";
 
 export async function AppShell({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
-  const isAdmin = user?.role === "admin";
-
   const navigation = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/learn", label: "Học", icon: BookOpen },
+    { href: "/dashboard", label: "Trang chủ", icon: LayoutDashboard },
+    { href: "/learn", label: "Chủ đề", icon: LibraryBig },
+    { href: "/review", label: "Luyện tập", icon: Gamepad2 },
     { href: "/settings", label: "Cài đặt", icon: Settings },
-    ...(isAdmin ? [{ href: "/admin", label: "Quản trị", icon: ShieldCheck }] : []),
+    ...(user?.role === "admin" ? [{ href: "/admin", label: "Quản trị", icon: ShieldCheck }] : []),
   ];
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <header className="border-b border-border bg-background/90 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo href="/dashboard" />
           <LogoutButton />
         </div>
       </header>
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 md:grid-cols-[220px_1fr]">
+      <div className="mx-auto grid max-w-6xl gap-7 px-4 py-6 sm:px-6 md:grid-cols-[190px_1fr] md:py-8">
         <nav className="flex gap-2 overflow-x-auto md:flex-col" aria-label="Điều hướng ứng dụng">
           {navigation.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="inline-flex h-10 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition hover:bg-background hover:text-foreground"
-            >
+            <Link key={href} href={href} className="inline-flex h-10 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition hover:bg-background hover:text-foreground">
               <Icon className="size-4" aria-hidden="true" />
               {label}
             </Link>
           ))}
         </nav>
-        <main>{children}</main>
+        <main className="min-w-0">{children}</main>
       </div>
     </div>
   );

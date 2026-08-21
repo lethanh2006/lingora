@@ -85,7 +85,7 @@ export const topicProgressSchema = z
   .object({
     schemaVersion: z.literal(VOCABULARY_SCHEMA_VERSION),
     topicId: stableIdSchema,
-    completedModes: z.array(practiceModeSchema).max(3),
+    practicedModes: z.array(practiceModeSchema).max(3),
     sessionsCompleted: z.number().int().nonnegative(),
     correctAnswers: z.number().int().nonnegative(),
     totalAnswers: z.number().int().nonnegative(),
@@ -124,6 +124,13 @@ export const practiceSessionInputSchema = z
     }
 
     const studiedIds = new Set(session.studiedWordIds);
+    if (studiedIds.size !== session.studiedWordIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Danh sách từ trong phiên không được trùng nhau",
+        path: ["studiedWordIds"],
+      });
+    }
     for (const wordId of session.masteredWordIds) {
       if (!studiedIds.has(wordId)) {
         context.addIssue({
