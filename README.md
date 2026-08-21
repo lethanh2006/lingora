@@ -1,49 +1,43 @@
 # Lingora
 
-Base kỹ thuật cho nền tảng học ngôn ngữ, xây dựng bằng Next.js App Router và Firebase. Repo này chỉ chứa infrastructure và các tính năng dùng chung; các module nghiệp vụ như courses, lessons, vocabulary và quizzes sẽ được thêm sau.
+Lingora là ứng dụng học từ vựng theo chủ đề. Quản trị viên tạo chủ đề và danh sách từ; người học thấy nội dung đó ngay và luyện bằng ba trò chơi: lật thẻ, ghép từ và điền từ.
 
-## Stack
+Tài liệu sản phẩm, luồng, dữ liệu và tiêu chí nghiệm thu chính thức nằm tại [lingora.md](./lingora.md). Tài liệu xử lý sự cố nằm tại [INCIDENT_RUNBOOK.md](./INCIDENT_RUNBOOK.md).
+
+## Tính năng chính
+
+- Đăng ký/đăng nhập bằng email, mật khẩu hoặc Google.
+- Dashboard chỉ hiển thị tiến độ thật của từng tài khoản.
+- Danh sách từ vựng theo chủ đề cho tiếng Anh, Nhật và Trung.
+- Lật thẻ có phát âm bằng Web Speech API.
+- Ghép từ với nghĩa và điền từ theo nghĩa tiếng Việt.
+- Tiến độ riêng theo UID: số phiên, từ đã ghi nhớ, điểm tốt nhất và chuỗi ngày luyện.
+- Admin CRUD chủ đề/từ vựng; bật hoặc ẩn nội dung mà không qua workflow xuất bản.
+- Firebase session cookie phía server và kiểm tra quyền admin ở từng endpoint.
+
+## Công nghệ
 
 - Node.js 24 LTS
-- Next.js 16 + React 19 + TypeScript strict
-- Tailwind CSS 4 + shadcn/ui foundation
+- Next.js 16.3 App Router, React 19, TypeScript strict
+- Tailwind CSS 4
 - Firebase Authentication, Firestore, Storage và Admin SDK
-- Zod 4 cho dữ liệu không tin cậy
-
-## Tính năng base
-
-- Đăng ký, đăng nhập email/password và Google
-- Khôi phục mật khẩu qua email
-- Firebase ID token đổi thành HttpOnly session cookie phía server
-- User profile và hai role `user` / `admin`
-- Route Dashboard và Admin được kiểm tra quyền tại server
-- Firestore/Storage security rules và cấu hình Emulator Suite
-- Error, loading và not-found UI
-- Quality gates: typecheck, lint, build
+- Zod 4
 
 ## Cài đặt
-
-Yêu cầu Node.js 24. Nếu dùng nvm:
 
 ```bash
 nvm use
 npm install
-```
-
-Tạo Firebase project, sau đó bật:
-
-1. Authentication → Email/Password và Google providers.
-2. Firestore Database.
-3. Storage.
-4. Project Settings → Service accounts → Generate new private key.
-
-Sao chép file env và điền cấu hình Firebase:
-
-```bash
 cp .env.example .env.local
 ```
 
-`NEXT_PUBLIC_*` là cấu hình Firebase Web SDK và không phải secret. Các biến `FIREBASE_ADMIN_*` chỉ được dùng phía server; không được commit private key hoặc service-account JSON.
+Điền cấu hình Firebase Web SDK và Firebase Admin vào `.env.local`. Không commit private key hoặc service-account JSON.
+
+Firebase project cần bật:
+
+1. Authentication với Email/Password và Google.
+2. Firestore Database.
+3. Storage nếu sau này dùng ảnh/audio tải lên.
 
 Chạy local:
 
@@ -51,82 +45,98 @@ Chạy local:
 npm run dev
 ```
 
-Mở http://localhost:3000.
+Mở `http://localhost:3000`.
 
-## Firebase rules và emulator
+## Khởi tạo nội dung mẫu
 
-Cài Firebase CLI nếu máy chưa có, đăng nhập rồi chọn project:
+Script mới chỉ tạo `vocabularyTopics` và `vocabularyWords`; không tạo tiến độ giả cho người dùng.
+
+Với Firestore Emulator:
 
 ```bash
-npm install --global firebase-tools
-firebase login
-firebase use --add
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm run seed:vocabulary
 ```
 
-Chạy emulator:
+Với project thật, phải xác nhận đúng project:
 
 ```bash
-firebase emulators:start
+npm run seed:vocabulary -- --confirm-project="$FIREBASE_ADMIN_PROJECT_ID"
 ```
 
-Chạy bộ kiểm thử Firestore Rules (cần Java 21+):
+Script idempotent: document đã tồn tại sẽ không bị ghi đè.
+
+## Cấp quyền admin
+
+Tài khoản mới có role `user`. Để tạo admin đầu tiên:
 
 ```bash
-npm run test:rules
+npm run make-admin -- user@example.com
 ```
 
-Kiểm tra seed idempotent bằng Firestore Emulator:
+Nếu script hiện tại được chạy trực tiếp, có thể dùng:
 
 ```bash
-npm run test:seed
+node --env-file=.env.local scripts/make-admin.mjs user@example.com
 ```
 
-Seed catalog pilot vào emulator đang chạy:
+Sau khi đăng nhập lại, mục `Quản trị` xuất hiện trong navigation.
 
-```bash
-FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm run seed:pilot
+## Route chính
+
+```text
+/dashboard                         tiến độ và chủ đề nổi bật
+/learn                             toàn bộ chủ đề
+/learn/[topicId]                   danh sách từ và lựa chọn trò chơi
+/learn/[topicId]/practice/[mode]   flashcards | matching | fill
+/review                            chọn nhanh chủ đề và trò chơi
+/settings                          hồ sơ và tài khoản
+
+/admin                             tổng quan nội dung
+/admin/topics                      tạo/sửa/ẩn chủ đề
+/admin/topics/[topicId]            quản lý từ trong chủ đề
 ```
 
-Khi seed project thật, script yêu cầu xác nhận đúng project để tránh ghi nhầm:
+Các màn course, lesson, exam, audit log, source registry và publish workflow không còn thuộc giao diện sản phẩm.
+
+## Kiểm thử
 
 ```bash
-npm run seed:pilot -- --confirm-project="$FIREBASE_ADMIN_PROJECT_ID"
-```
-
-Deploy rules/indexes:
-
-```bash
-firebase deploy --only firestore:rules,firestore:indexes,storage
-```
-
-Base hiện khởi tạo tài khoản với role `user`. Để cấp admin lần đầu, chỉnh field `role` của document `users/{uid}` thành `admin` trong Firebase Console. Sau đó chỉ admin mới có quyền đọc/ghi rộng qua Firestore Client SDK; Admin SDK phía server vẫn phải kiểm tra quyền ở từng endpoint.
-
-## Quality gates
-
-```bash
+npm test
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-Hoặc chạy toàn bộ:
+Kiểm thử Firestore cần Java 21+:
+
+```bash
+npm run test:rules
+npm run test:vocabulary
+```
+
+Chạy toàn bộ quality gate:
 
 ```bash
 npm run check
 ```
 
-## Cấu trúc chính
+## Deploy rules và indexes
 
-```text
-src/
-├── app/                 routes, layouts, route handlers
-├── components/          ui primitives và shared layout
-├── features/            code theo feature (auth, user, ...)
-└── lib/                 Firebase, session, env và utilities
+```bash
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
-Quy tắc dependency: `app → features → lib`; UI primitives không truy cập Firebase và Firebase Admin không bao giờ được import vào Client Component.
+## Cấu trúc phần từ vựng
 
-## Tạo project mới từ base
+```text
+src/features/vocabulary/
+├── components/                    UI chủ đề, admin và trò chơi
+├── schemas/vocabulary.schema.ts   contract dữ liệu
+├── seed/starter-vocabulary.ts     dữ liệu mẫu
+├── vocabulary-admin.service.ts    mutation admin + transaction wordCount
+├── vocabulary-progress.service.ts tiến độ từng người học
+├── vocabulary.repository.ts       nguồn đọc chung admin/learner
+└── vocabulary-stats.ts            tính chuỗi ngày học
+```
 
-Ưu tiên dùng repository này làm GitHub Template. Nếu clone thủ công, tạo repository/git history mới trước khi phát triển business modules.
+Nguyên tắc quan trọng: admin và learner phải dùng cùng `vocabulary.repository`; không tạo thêm draft/revision/source khác cho nội dung từ vựng.
