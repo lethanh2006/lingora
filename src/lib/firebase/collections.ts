@@ -23,6 +23,8 @@ export const COLLECTIONS = {
   sourceAttributions: "sourceAttributions",
   systemConfig: "systemConfig",
   users: "users",
+  vocabularyTopics: "vocabularyTopics",
+  vocabularyWords: "vocabularyWords",
 } as const;
 
 export const USER_SUBCOLLECTIONS = {
@@ -32,4 +34,6 @@ export const USER_SUBCOLLECTIONS = {
   lessonProgress: "lessonProgress",
   reviewItems: "reviewItems",
   sections: "sections",
+  topicProgress: "topicProgress",
+  practiceDays: "practiceDays",
 } as const;

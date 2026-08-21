@@ -1,0 +1,53 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  practiceSessionInputSchema,
+  vocabularyTopicInputSchema,
+  vocabularyWordInputSchema,
+} from "../src/features/vocabulary/schemas/vocabulary.schema.ts";
+import { createStarterVocabularySeed } from "../src/features/vocabulary/seed/starter-vocabulary.ts";
+import { timestamp } from "./fixtures/content.mjs";
+
+test("starter vocabulary contains visible topics and words", () => {
+  const documents = createStarterVocabularySeed(timestamp);
+  const topics = documents.filter(({ collection }) => collection === "vocabularyTopics");
+  const words = documents.filter(({ collection }) => collection === "vocabularyWords");
+
+  assert.equal(topics.length, 3);
+  assert.equal(words.length, 24);
+  assert.ok(topics.every(({ data }) => data.isVisible && data.wordCount === 8));
+  assert.ok(words.every(({ data }) => data.isVisible && data.topicId));
+  assert.equal(new Set(documents.map(({ collection, id }) => `${collection}/${id}`)).size, 27);
+});
+
+test("admin topic and word inputs reject empty required content", () => {
+  assert.equal(vocabularyTopicInputSchema.safeParse({ title: "" }).success, false);
+  assert.equal(vocabularyWordInputSchema.safeParse({ term: "hello", meaning: "" }).success, false);
+  assert.equal(
+    vocabularyWordInputSchema.safeParse({ term: "hello", meaning: "xin chào" }).success,
+    true,
+  );
+});
+
+test("practice session only accepts mastered words from the studied set", () => {
+  const base = {
+    topicId: "chao-hoi-tieng-anh",
+    mode: "flashcards",
+    correctAnswers: 1,
+    totalAnswers: 2,
+    studiedWordIds: ["word-a", "word-b"],
+    masteredWordIds: ["word-a"],
+    durationSeconds: 30,
+  };
+
+  assert.equal(practiceSessionInputSchema.safeParse(base).success, true);
+  assert.equal(
+    practiceSessionInputSchema.safeParse({ ...base, masteredWordIds: ["word-c"] }).success,
+    false,
+  );
+  assert.equal(
+    practiceSessionInputSchema.safeParse({ ...base, correctAnswers: 3 }).success,
+    false,
+  );
+});
