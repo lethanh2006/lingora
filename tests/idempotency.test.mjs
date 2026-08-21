@@ -47,7 +47,7 @@ function makeDb(docs = {}) {
   };
 }
 
-const NOW = new Date("2026-08-19T04:00:00Z");
+const NOW = new Date();
 const FUTURE = new Date(NOW.getTime() + 48 * 60 * 60 * 1000); // 48h later
 const PAST = new Date(NOW.getTime() - 1000); // 1s before NOW (expired)
 

@@ -12,6 +12,7 @@
     "test:seed": "firebase emulators:exec --project demo-lingora --only firestore \"node --conditions=react-server --test tests/firestore-seed.test.mjs\"",
     "test:catalog": "firebase emulators:exec --project demo-lingora --only firestore \"node --conditions=react-server --test tests/firestore-catalog.test.mjs\"",
     "test:enrollment": "firebase emulators:exec --project demo-lingora --only firestore \"node --conditions=react-server --test tests/firestore-enrollment.test.mjs\"",
+    "test:vocabulary": "firebase emulators:exec --project demo-lingora --only firestore \"node --conditions=react-server --test tests/firestore-vocabulary.test.mjs\"",
     "seed:pilot": "node --env-file-if-exists=.env.local --conditions=react-server scripts/seed-pilot.mjs",
     "seed:vocabulary": "node --env-file-if-exists=.env.local --conditions=react-server scripts/seed-vocabulary.mjs",
     "profile:queries": "node --env-file-if-exists=.env.local scripts/query-diagnostics.mjs",
