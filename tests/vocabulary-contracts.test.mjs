@@ -7,6 +7,7 @@ import {
   vocabularyWordInputSchema,
 } from "../src/features/vocabulary/schemas/vocabulary.schema.ts";
 import { createStarterVocabularySeed } from "../src/features/vocabulary/seed/starter-vocabulary.ts";
+import { slugifyTopicTitle } from "../src/features/vocabulary/vocabulary-admin.service.ts";
 import { timestamp } from "./fixtures/content.mjs";
 
 test("starter vocabulary contains visible topics and words", () => {
@@ -50,4 +51,9 @@ test("practice session only accepts mastered words from the studied set", () => 
     practiceSessionInputSchema.safeParse({ ...base, correctAnswers: 3 }).success,
     false,
   );
+});
+
+test("topic title is converted to a stable Vietnamese-safe slug", () => {
+  assert.equal(slugifyTopicTitle("Đồ ăn & Thức uống"), "do-an-thuc-uong");
+  assert.equal(slugifyTopicTitle("  日本語  "), "chu-de");
 });

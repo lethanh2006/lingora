@@ -1,90 +1,78 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import {
-  ShieldCheck,
-  BookOpen,
-  HelpCircle,
-  FileQuestion,
-  Layers,
-  Link2,
-  ClipboardList,
-  LayoutDashboard,
-  ArrowLeft,
-} from "lucide-react";
+import { ArrowLeft, Eye, LayoutDashboard, LibraryBig, ShieldCheck } from "lucide-react";
 
 import { Logo } from "@/components/layout/logo";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 
-const adminNav = [
+const adminNavigation = [
   { href: "/admin", label: "Tổng quan", icon: LayoutDashboard },
-  { href: "/admin/content", label: "Biên dịch & Xuất bản", icon: BookOpen },
-  { href: "/admin/activities", label: "Quản lý Hoạt động", icon: Layers },
-  { href: "/admin/questions", label: "Ngân hàng câu hỏi", icon: HelpCircle },
-  { href: "/admin/exams", label: "Đề thi (Blueprints)", icon: FileQuestion },
-  { href: "/admin/sources", label: "Source Registry", icon: Link2 },
-  { href: "/admin/audit-logs", label: "Audit Logs", icon: ClipboardList },
+  { href: "/admin/topics", label: "Chủ đề & từ vựng", icon: LibraryBig },
+  { href: "/learn", label: "Xem như người học", icon: Eye },
 ];
 
 export default function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <div className="min-h-screen bg-muted/40">
-      <header className="border-b border-border bg-background/90 backdrop-blur sticky top-0 z-30">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <Logo href="/admin" />
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
-              <ShieldCheck className="size-3" />
-              Admin CMS
+            <span className="hidden items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary sm:inline-flex">
+              <ShieldCheck className="size-3.5" />
+              Quản trị từ vựng
             </span>
           </div>
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
             >
               <ArrowLeft className="size-3.5" />
-              Về Dashboard
+              Về trang học
             </Link>
             <LogoutButton />
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-7xl gap-0">
-        {/* Sidebar */}
-        <aside className="w-56 shrink-0 border-r border-border bg-background/60 min-h-[calc(100vh-4rem)] px-3 py-6 hidden md:block">
-          <nav className="space-y-1" aria-label="Admin navigation">
-            <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground mb-3">
-              Quản trị nội dung
-            </p>
-            {adminNav.map(({ href, label, icon: Icon }) => (
+      <div className="mx-auto grid max-w-7xl md:grid-cols-[230px_1fr]">
+        <aside className="hidden min-h-[calc(100vh-4rem)] border-r border-border bg-background/70 px-3 py-6 md:block">
+          <p className="mb-3 px-3 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+            Nội dung ứng dụng
+          </p>
+          <nav className="space-y-1" aria-label="Điều hướng quản trị">
+            {adminNavigation.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
               >
-                <Icon className="size-4 shrink-0" />
-                <span className="truncate">{label}</span>
+                <Icon className="size-4" />
+                {label}
               </Link>
             ))}
           </nav>
+          <div className="mt-8 rounded-2xl border border-primary/15 bg-primary/5 p-4 text-xs leading-5 text-muted-foreground">
+            Chỉ cần tạo chủ đề, thêm từ và bật hiển thị. Người học sẽ thấy thay đổi ngay khi tải lại trang.
+          </div>
         </aside>
 
-        {/* Mobile nav */}
-        <div className="flex md:hidden gap-1 overflow-x-auto px-4 py-3 border-b bg-background w-full">
-          {adminNav.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-1.5 shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
-            >
-              <Icon className="size-3.5" />
-              {label}
-            </Link>
-          ))}
+        <div className="min-w-0">
+          <nav className="flex gap-1 overflow-x-auto border-b bg-background px-4 py-3 md:hidden" aria-label="Điều hướng quản trị di động">
+            {adminNavigation.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <main className="px-4 py-8 sm:px-6 lg:px-8">{children}</main>
         </div>
-
-        <main className="flex-1 px-4 sm:px-6 py-8 min-w-0">{children}</main>
       </div>
     </div>
   );

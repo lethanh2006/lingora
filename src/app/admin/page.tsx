@@ -1,206 +1,116 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ShieldCheck,
-  HelpCircle,
-  FileQuestion,
-  Link2,
-  ClipboardList,
-  BookOpen,
-  Activity,
-  ArrowRight,
-} from "lucide-react";
-import { Timestamp } from "firebase-admin/firestore";
+import { ArrowRight, Eye, LibraryBig, Plus, Users, WholeWord } from "lucide-react";
 
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createVocabularyRepository } from "@/features/vocabulary/vocabulary.repository";
 import { requireAdmin } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Admin CMS – Lingora" };
+export const metadata: Metadata = { title: "Quản trị từ vựng – Lingora" };
 
 export default async function AdminPage() {
   const user = await requireAdmin();
   const db = getAdminDb();
-
-  // Fetch counts in parallel
-  const [
-    questionsSnap,
-    blueprintsSnap,
-    formVersionsSnap,
-    sourcesSnap,
-    auditSnap,
-    lessonsSnap,
-  ] = await Promise.all([
-    db.collection(COLLECTIONS.questions).count().get(),
-    db.collection(COLLECTIONS.examBlueprints).count().get(),
-    db.collection(COLLECTIONS.examFormVersions).count().get(),
-    db.collection(COLLECTIONS.contentSources).count().get(),
-    db.collection(COLLECTIONS.auditLogs).orderBy("createdAt", "desc").limit(5).get(),
-    db.collection(COLLECTIONS.contentLessons).count().get(),
+  const [topics, wordsCount, usersCount] = await Promise.all([
+    createVocabularyRepository(db).listTopics({ includeHidden: true }),
+    db.collection(COLLECTIONS.vocabularyWords).count().get(),
+    db.collection(COLLECTIONS.users).count().get(),
   ]);
-
-  const recentLogs = auditSnap.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      action: data.action || "unknown",
-      resourceType: data.entityType || "-",
-      resourceId: data.entityId || "-",
-      actorUid: data.actorUid || "-",
-      createdAt: data.createdAt
-        ? new Timestamp(data.createdAt.seconds, data.createdAt.nanoseconds)
-            .toDate()
-            .toLocaleString("vi-VN")
-        : "-",
-    };
-  });
+  const visibleTopics = topics.filter((topic) => topic.isVisible);
 
   const stats = [
-    {
-      label: "Câu hỏi",
-      value: questionsSnap.data().count,
-      icon: HelpCircle,
-      href: "/admin/questions",
-      color: "text-violet-600",
-      bg: "bg-violet-50",
-    },
-    {
-      label: "Đề thi (Blueprints)",
-      value: blueprintsSnap.data().count,
-      icon: FileQuestion,
-      href: "/admin/exams",
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-    },
-    {
-      label: "Form Versions",
-      value: formVersionsSnap.data().count,
-      icon: Activity,
-      href: "/admin/exams",
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
-    },
-    {
-      label: "Bài học",
-      value: lessonsSnap.data().count,
-      icon: BookOpen,
-      href: "/admin/content",
-      color: "text-amber-600",
-      bg: "bg-amber-50",
-    },
-    {
-      label: "Nguồn tham khảo",
-      value: sourcesSnap.data().count,
-      icon: Link2,
-      href: "/admin/sources",
-      color: "text-rose-600",
-      bg: "bg-rose-50",
-    },
+    { label: "Chủ đề đang hiển thị", value: visibleTopics.length, icon: LibraryBig },
+    { label: "Tổng số từ", value: wordsCount.data().count, icon: WholeWord },
+    { label: "Người dùng", value: usersCount.data().count, icon: Users },
   ];
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-          <ShieldCheck className="size-6" />
-        </div>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            Admin CMS Dashboard
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Đăng nhập với <strong>{user.email}</strong>
+          <p className="text-sm font-semibold text-primary">Quản trị nội dung</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">Xin chào, {user.displayName}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Quản lý đúng hai thứ: chủ đề và từ vựng. Không cần biên dịch, duyệt hay xuất bản.
           </p>
         </div>
-      </div>
+        <Link href="/admin/topics" className={buttonVariants({ size: "lg" })}>
+          <Plus className="size-4" />
+          Thêm chủ đề
+        </Link>
+      </header>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {stats.map((stat) => (
-          <Link key={stat.label} href={stat.href}>
-            <Card className="hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer h-full">
-              <CardContent className="p-4 flex flex-col gap-3">
-                <div className={`size-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
-                  <stat.icon className="size-5" />
-                </div>
-                <div>
-                  <div className="text-2xl font-extrabold text-foreground">{stat.value}</div>
-                  <div className="text-xs text-muted-foreground font-medium">{stat.label}</div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {stats.map(({ label, value, icon: Icon }) => (
+          <Card key={label}>
+            <CardContent className="flex items-center gap-4 p-5">
+              <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Icon className="size-5" />
+              </span>
+              <div>
+                <p className="text-2xl font-bold">{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { href: "/admin/questions", label: "Ngân hàng câu hỏi", desc: "Xem và tạo câu hỏi mới", icon: HelpCircle },
-          { href: "/admin/exams", label: "Quản lý đề thi", desc: "Blueprint & Form versions", icon: FileQuestion },
-          { href: "/admin/sources", label: "Source Registry", desc: "Quản lý nguồn tham khảo", icon: Link2 },
-          { href: "/admin/audit-logs", label: "Audit Logs", desc: "Nhật ký hoạt động hệ thống", icon: ClipboardList },
-        ].map((item) => (
-          <Link key={item.href} href={item.href}>
-            <Card className="hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer h-full">
-              <CardContent className="p-4 flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <item.icon className="size-4 text-primary" />
-                    <p className="text-sm font-bold text-foreground">{item.label}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
-                </div>
-                <ArrowRight className="size-4 text-muted-foreground shrink-0" />
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      {/* Recent Audit Logs */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <ClipboardList className="size-4 text-primary" />
-              Hoạt động gần đây
-            </CardTitle>
-            <Link
-              href="/admin/audit-logs"
-              className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
-            >
-              Xem tất cả <ArrowRight className="size-3" />
+      <div className="grid gap-5 lg:grid-cols-[1.4fr_0.6fr]">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-lg">Chủ đề gần đây</CardTitle>
+            <Link href="/admin/topics" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+              Quản lý tất cả <ArrowRight className="size-4" />
             </Link>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {recentLogs.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              Chưa có hoạt động nào được ghi nhận.
-            </p>
-          ) : (
-            <div className="divide-y">
-              {recentLogs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between py-3 text-sm">
-                  <div className="space-y-0.5">
-                    <span className="font-mono text-xs px-1.5 py-0.5 bg-muted rounded text-foreground font-semibold">
-                      {log.action}
-                    </span>{" "}
-                    <span className="text-muted-foreground">trên</span>{" "}
-                    <span className="font-semibold text-foreground">
-                      {log.resourceType}/{log.resourceId}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0 ml-4">{log.createdAt}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {topics.length === 0 ? (
+              <div className="rounded-2xl border border-dashed p-8 text-center">
+                <p className="font-semibold">Chưa có chủ đề nào</p>
+                <p className="mt-1 text-sm text-muted-foreground">Tạo chủ đề đầu tiên rồi thêm từ vựng vào đó.</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {topics.slice(0, 6).map((topic) => (
+                  <Link
+                    key={topic.id}
+                    href={`/admin/topics/${topic.id}`}
+                    className="flex items-center justify-between gap-4 py-3 transition hover:text-primary"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="text-2xl" aria-hidden="true">{topic.icon}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{topic.title}</p>
+                        <p className="text-xs text-muted-foreground">{topic.wordCount} từ · {topic.isVisible ? "Đang hiển thị" : "Đang ẩn"}</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground">
+              <Eye className="size-5" />
+            </span>
+            <CardTitle className="pt-3 text-lg">Lưu là hiển thị</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-muted-foreground">
+            <p>Mọi chủ đề và từ đang bật “Hiển thị” dùng chung dữ liệu với giao diện người học.</p>
+            <Link href="/learn" className={buttonVariants({ variant: "outline" })}>
+              Xem giao diện học
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
