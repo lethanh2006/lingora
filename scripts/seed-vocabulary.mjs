@@ -2,6 +2,7 @@ import { cert, deleteApp, initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 import { createFirestoreSeedStore } from "../src/features/content/seed/firestore-seed.ts";
+import { seedGradedVocabulary } from "../src/features/vocabulary/seed/graded-vocabulary.ts";
 import { seedStarterVocabulary } from "../src/features/vocabulary/seed/starter-vocabulary.ts";
 
 function getTarget() {
@@ -24,11 +25,14 @@ function getTarget() {
 const app = initializeApp(getTarget());
 
 try {
-  const result = await seedStarterVocabulary(
-    createFirestoreSeedStore(getFirestore(app)),
-    Timestamp.now(),
+  const store = createFirestoreSeedStore(getFirestore(app));
+  const timestamp = Timestamp.now();
+  const starter = await seedStarterVocabulary(store, timestamp);
+  const graded = await seedGradedVocabulary(store, timestamp);
+  console.log(
+    `Dữ liệu mẫu: tạo ${starter.created.length}, bỏ qua ${starter.skipped.length}. ` +
+      `Dữ liệu phân cấp: tạo ${graded.created.length}, bỏ qua ${graded.skipped.length}.`,
   );
-  console.log(`Đã tạo ${result.created.length}, bỏ qua ${result.skipped.length} mục từ vựng.`);
 } catch (error) {
   console.error("Không thể khởi tạo dữ liệu từ vựng:", error);
   process.exitCode = 1;
