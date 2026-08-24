@@ -8,6 +8,7 @@ import {
 } from "../src/features/vocabulary/schemas/vocabulary.schema.ts";
 import { createStarterVocabularySeed } from "../src/features/vocabulary/seed/starter-vocabulary.ts";
 import { slugifyTopicTitle } from "../src/features/vocabulary/vocabulary-admin.service.ts";
+import { getVocabularyLanguageCopy } from "../src/features/vocabulary/vocabulary-language.ts";
 import { createVocabularyProgressService } from "../src/features/vocabulary/vocabulary-progress.service.ts";
 import { calculatePracticeStreak } from "../src/features/vocabulary/vocabulary-stats.ts";
 import { timestamp } from "./fixtures/content.mjs";
@@ -22,6 +23,20 @@ test("starter vocabulary contains visible topics and words", () => {
   assert.ok(topics.every(({ data }) => data.isVisible && data.wordCount === 8));
   assert.ok(words.every(({ data }) => data.isVisible && data.topicId));
   assert.equal(new Set(documents.map(({ collection, id }) => `${collection}/${id}`)).size, 27);
+});
+
+test("vocabulary fields use pronunciation conventions for each language", () => {
+  assert.deepEqual(
+    ["en", "ja", "zh"].map((languageCode) => {
+      const copy = getVocabularyLanguageCopy(languageCode);
+      return [copy.pronunciationLabel, copy.pronunciationPlaceholder];
+    }),
+    [
+      ["IPA (Anh-Mỹ)", "Ví dụ: /həˈloʊ/"],
+      ["Cách đọc (kana)", "Ví dụ: たべる"],
+      ["Pinyin", "Ví dụ: nǐ hǎo"],
+    ],
+  );
 });
 
 test("admin topic and word inputs reject empty required content", () => {

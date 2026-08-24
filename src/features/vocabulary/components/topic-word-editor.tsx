@@ -16,6 +16,7 @@ import type {
   VocabularyTopicDto,
   VocabularyWordDto,
 } from "@/features/vocabulary/schemas/vocabulary.schema";
+import { getVocabularyLanguageCopy } from "@/features/vocabulary/vocabulary-language";
 
 type WordFormState = {
   term: string;
@@ -76,6 +77,7 @@ export function TopicWordEditor({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const showJapaneseSuggestions = topic.languageCode === "ja" && editingId === null;
+  const languageCopy = getVocabularyLanguageCopy(topic.languageCode);
 
   function resetForm() {
     setEditingId(null);
@@ -211,17 +213,17 @@ export function TopicWordEditor({
                     />
                   </div>
                 ) : (
-                  <div className="space-y-1.5"><label htmlFor="word-term" className="text-sm font-medium">Từ / cụm từ *</label><Input id="word-term" value={form.term} onChange={(event) => setForm({ ...form, term: event.target.value })} required /></div>
+                  <div className="space-y-1.5"><label htmlFor="word-term" className="text-sm font-medium">{languageCopy.termLabel} *</label><Input id="word-term" value={form.term} onChange={(event) => setForm({ ...form, term: event.target.value })} placeholder={languageCopy.termPlaceholder} required /></div>
                 )}
                 <div className={showJapaneseSuggestions ? "col-span-2 space-y-1.5" : "space-y-1.5"}><label htmlFor="word-meaning" className="text-sm font-medium">Nghĩa tiếng Việt *</label><Input id="word-meaning" value={form.meaning} onChange={(event) => setForm({ ...form, meaning: event.target.value })} required /></div>
               </div>
-              <div className="space-y-1.5"><label htmlFor="word-pronunciation" className="text-sm font-medium">Phiên âm</label><Input id="word-pronunciation" value={form.pronunciation} onChange={(event) => setForm({ ...form, pronunciation: event.target.value })} placeholder="Ví dụ: /həˈləʊ/ hoặc nǐ hǎo" /></div>
-              <div className="space-y-1.5"><label htmlFor="word-example" className="text-sm font-medium">Câu ví dụ</label><textarea id="word-example" className="min-h-20 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" value={form.example} onChange={(event) => setForm({ ...form, example: event.target.value })} /></div>
+              <div className="space-y-1.5"><label htmlFor="word-pronunciation" className="text-sm font-medium">{languageCopy.pronunciationLabel}</label><Input id="word-pronunciation" value={form.pronunciation} onChange={(event) => setForm({ ...form, pronunciation: event.target.value })} placeholder={languageCopy.pronunciationPlaceholder} /></div>
+              <div className="space-y-1.5"><label htmlFor="word-example" className="text-sm font-medium">{languageCopy.exampleLabel}</label><textarea id="word-example" className="min-h-20 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" value={form.example} onChange={(event) => setForm({ ...form, example: event.target.value })} /></div>
               <div className="space-y-1.5"><label htmlFor="word-example-meaning" className="text-sm font-medium">Nghĩa câu ví dụ</label><textarea id="word-example-meaning" className="min-h-20 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" value={form.exampleMeaning} onChange={(event) => setForm({ ...form, exampleMeaning: event.target.value })} /></div>
               <div className="space-y-1.5">
                 <label htmlFor="word-audio" className="text-sm font-medium">URL âm thanh (không bắt buộc)</label>
                 <div className="flex gap-2">
-                  <Input id="word-audio" type="url" value={form.audioUrl} onChange={(event) => setForm({ ...form, audioUrl: event.target.value })} placeholder="Sẽ tự điền khi chọn gợi ý tiếng Nhật" />
+                  <Input id="word-audio" type="url" value={form.audioUrl} onChange={(event) => setForm({ ...form, audioUrl: event.target.value })} placeholder={languageCopy.audioPlaceholder} />
                   <Button
                     type="button"
                     size="icon"

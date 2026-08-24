@@ -6,6 +6,7 @@ import type {
   TopicProgressDto,
   VocabularyTopicDto,
 } from "@/features/vocabulary/schemas/vocabulary.schema";
+import { getVocabularyLanguageCopy } from "@/features/vocabulary/vocabulary-language";
 
 const accentClasses = {
   emerald: "from-emerald-500/15 to-emerald-500/5 border-emerald-500/20",
@@ -16,8 +17,6 @@ const accentClasses = {
   cyan: "from-cyan-500/15 to-cyan-500/5 border-cyan-500/20",
 } as const;
 
-const languageLabels = { en: "Tiếng Anh", ja: "Tiếng Nhật", zh: "Tiếng Trung" } as const;
-
 export function TopicCard({
   topic,
   progress,
@@ -27,6 +26,7 @@ export function TopicCard({
 }) {
   const masteredCount = Math.min(progress?.masteredWordIds.length ?? 0, topic.wordCount);
   const percent = topic.wordCount > 0 ? Math.round((masteredCount / topic.wordCount) * 100) : 0;
+  const languageCopy = getVocabularyLanguageCopy(topic.languageCode);
 
   return (
     <Link href={`/learn/${topic.id}`} className="group block h-full">
@@ -34,7 +34,7 @@ export function TopicCard({
         <CardContent className="flex h-full flex-col p-5">
           <div className="flex items-start justify-between gap-3">
             <span className="grid size-14 place-items-center rounded-2xl bg-background/85 text-3xl shadow-sm" aria-hidden="true">{topic.icon}</span>
-            <span className="rounded-full bg-background/80 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{languageLabels[topic.languageCode]}</span>
+            <span className="rounded-full bg-background/80 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{languageCopy.name}</span>
           </div>
           <h2 className="mt-5 text-xl font-bold tracking-tight">{topic.title}</h2>
           <p className="mt-2 line-clamp-2 flex-1 text-sm leading-6 text-muted-foreground">{topic.description}</p>
