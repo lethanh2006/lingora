@@ -1,6 +1,6 @@
 # Lingora — Tài liệu sản phẩm và kỹ thuật
 
-Phiên bản tài liệu: 2.0
+Phiên bản tài liệu: 2.1
 Trạng thái: nguồn sự thật hiện hành
 Phạm vi: ứng dụng học từ vựng theo chủ đề
 
@@ -44,7 +44,7 @@ Một số service/API cũ có thể còn trong source để tương thích dữ
 
 - Xem chủ đề đang bật hiển thị.
 - Xem từ vựng đang bật hiển thị trong chủ đề.
-- Chơi ba trò và nghe phát âm bằng Web Speech API.
+- Chơi ba trò và nghe file phát âm đã lưu; tự chuyển sang Web Speech API khi file thiếu hoặc lỗi.
 - Chỉ đọc tiến độ thuộc UID của chính mình.
 - Sửa hồ sơ hoặc xóa tài khoản.
 
@@ -53,6 +53,8 @@ Một số service/API cũ có thể còn trong source để tương thích dữ
 - Có toàn bộ quyền của người học.
 - Tạo, sửa, ẩn và xóa chủ đề.
 - Thêm, sửa, ẩn và xóa từ vựng.
+- Import/export chủ đề và từ vựng bằng CSV có bước xem trước.
+- Nhận gợi ý khi tạo từ tiếng Nhật, gồm cách đọc, nghĩa, ví dụ và audio nếu nguồn có sẵn.
 - Xem chính nội dung đó bằng giao diện người học.
 
 Mọi endpoint mutation admin phải kiểm tra session server và `role === "admin"`. Không dựa vào việc nút admin có bị ẩn trên client hay không.
@@ -205,11 +207,54 @@ Mỗi từ có:
 - Phiên âm, không bắt buộc.
 - Câu ví dụ, không bắt buộc.
 - Nghĩa câu ví dụ, không bắt buộc.
+- URL audio, không bắt buộc.
 - URL ảnh, không bắt buộc.
 - Thứ tự.
 - Hiển thị/ẩn.
 
 Admin không phải nhập ID, source ID, activity ID hoặc revision ID.
+
+### Import/export CSV
+
+Màn danh sách chủ đề và màn từ vựng của từng chủ đề đều có `Xuất CSV` và `Nhập CSV`.
+
+- Export gồm cả bản ghi đang ẩn và thêm UTF-8 BOM để mở đúng Unicode trong Excel.
+- Import luôn chạy `preview` trước, báo số bản ghi tạo mới/cập nhật và chỉ ghi sau khi admin xác nhận.
+- Import không xóa dữ liệu vắng mặt trong tệp.
+- Chủ đề được đối sánh bằng tên sau khi chuẩn hóa Unicode, khoảng trắng đầu/cuối và chữ thường.
+- Từ được đối sánh bằng cặp `term + pronunciation` sau khi chuẩn hóa.
+- Một lần import tối đa 200 chủ đề hoặc 400 từ; sau import một chủ đề không vượt quá 500 từ.
+- Tệp chủ đề tối đa 1 MB; tệp từ vựng tối đa 2 MB.
+
+Header CSV chủ đề:
+
+```csv
+title,description,languageCode,icon,accent,order,isVisible
+```
+
+Header CSV từ vựng:
+
+```csv
+term,meaning,pronunciation,example,exampleMeaning,imageUrl,audioUrl,order,isVisible
+```
+
+### Gợi ý khi tạo từ tiếng Nhật
+
+Chức năng chỉ xuất hiện khi đang tạo từ mới trong topic có `languageCode = "ja"`:
+
+```text
+Admin nhập kanji, kana hoặc romaji
+→ client chờ 350 ms và gọi API nội bộ
+→ server tìm tối đa 6 kết quả trên Jotoba/JMdict
+→ admin chọn đúng từ và cách đọc
+→ server lấy chi tiết, câu ví dụ và dịch Anh → Việt qua MyMemory
+→ form tự điền term, pronunciation, meaning, example, exampleMeaning và audioUrl
+→ admin kiểm tra rồi mới lưu
+```
+
+Nếu MyMemory không dịch được, API trả nghĩa Việt là `null`; form không chèn nghĩa tiếng Anh vào ô nghĩa tiếng Việt. Nếu Jotoba không có file audio hoặc file phát lỗi, nút phát âm dùng Web Speech API của trình duyệt. URL audio tự động chỉ chấp nhận HTTPS trên host/path Jotoba đã cho phép.
+
+Nguồn audio hiện được Jotoba phân phối từ Kanji Alive (CC BY 4.0) hoặc Tofugu (CC BY-SA 4.0); attribution được hiển thị trong màn gợi ý và footer ứng dụng người học.
 
 ### Lưu là hiển thị
 
@@ -406,6 +451,23 @@ Phiên bản hiện tại không gắn nhãn “hoàn thành chủ đề”. Das
 
 Mutation word chạy transaction với topic để giữ `wordCount` đúng khi thêm, xóa hoặc đổi visibility.
 
+### `GET|POST /api/admin/topics/transfer`
+
+- `GET`: export toàn bộ topic thành CSV.
+- `POST`: nhận multipart `file` và `mode = preview | apply` để kiểm tra hoặc import.
+
+### `GET|POST /api/admin/topics/[topicId]/words/transfer`
+
+- `GET`: export toàn bộ word của topic thành CSV.
+- `POST`: nhận multipart `file` và `mode = preview | apply` để kiểm tra hoặc import.
+
+### `GET|POST /api/admin/topics/[topicId]/word-suggestions`
+
+- `GET ?q=...`: tìm tối đa 6 gợi ý; chỉ chấp nhận topic tiếng Nhật.
+- `POST { term, kana }`: lấy chi tiết đúng cặp từ/cách đọc đã chọn.
+- Cả hai yêu cầu admin và trả `Cache-Control: no-store`; POST kiểm tra same-origin.
+- Lỗi nguồn ngoài trả mã rõ ràng; timeout mặc định là 8 giây cho mỗi request nguồn.
+
 ### `POST /api/practice`
 
 ```json
@@ -439,6 +501,8 @@ Server xác minh:
 - User chỉ được đọc document của UID chính mình.
 - Mutation kiểm tra origin để giảm CSRF từ site khác.
 - Topic/word input dùng Zod strict schema.
+- Import giới hạn kích thước tệp, số dòng, dữ liệu trùng và chống CSV formula injection khi export.
+- API gợi ý chỉ gọi các endpoint cố định của Jotoba/MyMemory; URL audio được ép HTTPS, host và path allowlist.
 
 ## 13. Seed và môi trường
 
@@ -481,7 +545,7 @@ Nếu migrate nội dung:
 npm test
 ```
 
-Bao phủ schema topic/word/session, slug tiếng Việt, seed, streak và xóa dữ liệu tài khoản.
+Bao phủ schema topic/word/session, CSV, kế hoạch import, API/dịch vụ gợi ý tiếng Nhật, slug tiếng Việt, seed, streak và xóa dữ liệu tài khoản.
 
 ### Firestore integration
 
@@ -515,6 +579,10 @@ npm run build
 - [ ] Topic hidden không xuất hiện cho learner.
 - [ ] Word hidden không xuất hiện trong topic hoặc game.
 - [ ] `wordCount` thay đổi đúng khi thêm/xóa/ẩn/hiện word.
+- [ ] Export rồi import lại CSV không làm mất Unicode, dấu phẩy, dấu ngoặc kép hoặc xuống dòng.
+- [ ] Preview import báo đúng số tạo mới/cập nhật và không ghi dữ liệu.
+- [ ] Topic tiếng Nhật gợi ý đúng từ + kana và tự điền audio khi nguồn có file.
+- [ ] Nguồn gợi ý lỗi không làm mất dữ liệu admin đã nhập; audio lỗi chuyển sang giọng trình duyệt.
 - [ ] Flashcard lật được và lưu lựa chọn ghi nhớ.
 - [ ] Matching chỉ kết thúc khi ghép hết cặp.
 - [ ] Fill chuẩn hóa đáp án và báo đáp án đúng sau khi sai.

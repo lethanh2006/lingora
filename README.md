@@ -9,10 +9,12 @@ Tài liệu sản phẩm, luồng, dữ liệu và tiêu chí nghiệm thu chín
 - Đăng ký/đăng nhập bằng email, mật khẩu hoặc Google.
 - Dashboard chỉ hiển thị tiến độ thật của từng tài khoản.
 - Danh sách từ vựng theo chủ đề cho tiếng Anh, Nhật và Trung.
-- Lật thẻ có phát âm bằng Web Speech API.
+- Phát file audio đã lưu; tự chuyển sang Web Speech API khi URL thiếu hoặc lỗi.
 - Ghép từ với nghĩa và điền từ theo nghĩa tiếng Việt.
 - Tiến độ riêng theo UID: số phiên, từ đã ghi nhớ, điểm tốt nhất và chuỗi ngày luyện.
 - Admin CRUD chủ đề/từ vựng; bật hoặc ẩn nội dung mà không qua workflow xuất bản.
+- Import/export CSV có bước xem trước cho cả danh sách chủ đề và từ trong từng chủ đề.
+- Khi tạo từ tiếng Nhật, nhập kanji/kana/romaji để nhận gợi ý cách đọc, nghĩa, ví dụ và audio.
 - Firebase session cookie phía server và kiểm tra quyền admin ở từng endpoint.
 
 ## Công nghệ
@@ -133,7 +135,10 @@ src/features/vocabulary/
 ├── components/                    UI chủ đề, admin và trò chơi
 ├── schemas/vocabulary.schema.ts   contract dữ liệu
 ├── seed/starter-vocabulary.ts     dữ liệu mẫu
+├── japanese-word-suggestion.service.ts  Jotoba + bản dịch tiếng Việt
 ├── vocabulary-admin.service.ts    mutation admin + transaction wordCount
+├── vocabulary-csv.ts              đọc/ghi CSV an toàn
+├── vocabulary-import.service.ts   xem trước + import idempotent
 ├── vocabulary-progress.service.ts tiến độ từng người học
 ├── vocabulary.repository.ts       nguồn đọc chung admin/learner
 └── vocabulary-stats.ts            tính chuỗi ngày học
