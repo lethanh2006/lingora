@@ -27,8 +27,8 @@ export function slugifyTopicTitle(title: string): string {
   return slug || "chu-de";
 }
 
-function optionalText(value: string): string | null {
-  const normalized = value.trim();
+function optionalText(value?: string | null): string | null {
+  const normalized = value?.trim() ?? "";
   return normalized.length > 0 ? normalized : null;
 }
 
@@ -117,6 +117,7 @@ export function createVocabularyAdminService(db: Firestore) {
           pronunciation: optionalText(input.pronunciation),
           example: optionalText(input.example),
           exampleMeaning: optionalText(input.exampleMeaning),
+          audioUrl: optionalText(input.audioUrl),
           imageUrl: optionalText(input.imageUrl),
           createdAt: now,
           updatedAt: now,
@@ -158,6 +159,7 @@ export function createVocabularyAdminService(db: Firestore) {
           pronunciation: optionalText(input.pronunciation),
           example: optionalText(input.example),
           exampleMeaning: optionalText(input.exampleMeaning),
+          audioUrl: optionalText(input.audioUrl),
           imageUrl: optionalText(input.imageUrl),
           updatedAt: now,
         });

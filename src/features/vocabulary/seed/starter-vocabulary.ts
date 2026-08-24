@@ -135,6 +135,7 @@ export function createStarterVocabularySeed(
           pronunciation: word.pronunciation,
           example: word.example,
           exampleMeaning: word.exampleMeaning,
+          audioUrl: null,
           imageUrl: null,
           order: word.order,
           isVisible: true,

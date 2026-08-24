@@ -3,14 +3,19 @@
 import { Volume2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { playPronunciation } from "@/features/vocabulary/components/pronunciation-player";
 
-export function SpeakButton({ text, languageCode }: { text: string; languageCode: "en" | "ja" | "zh" }) {
+export function SpeakButton({
+  text,
+  languageCode,
+  audioUrl,
+}: {
+  text: string;
+  languageCode: "en" | "ja" | "zh";
+  audioUrl?: string | null;
+}) {
   function speak() {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = languageCode === "ja" ? "ja-JP" : languageCode === "zh" ? "zh-CN" : "en-US";
-    window.speechSynthesis.speak(utterance);
+    void playPronunciation({ text, languageCode, audioUrl });
   }
 
   return <Button type="button" size="icon" variant="ghost" onClick={speak} aria-label={`Phát âm ${text}`}><Volume2 className="size-5" /></Button>;

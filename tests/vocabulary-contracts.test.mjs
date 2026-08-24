@@ -31,6 +31,10 @@ test("admin topic and word inputs reject empty required content", () => {
     vocabularyWordInputSchema.safeParse({ term: "hello", meaning: "xin chào" }).success,
     true,
   );
+  assert.equal(
+    vocabularyWordInputSchema.parse({ term: "hello", meaning: "xin chào" }).audioUrl,
+    "",
+  );
 });
 
 test("practice session only accepts mastered words from the studied set", () => {

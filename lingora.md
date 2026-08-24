@@ -295,6 +295,7 @@ Không có nút Publish.
   pronunciation: string | null;
   example: string | null;
   exampleMeaning: string | null;
+  audioUrl: string | null;
   imageUrl: string | null;
   order: number;
   isVisible: boolean;
@@ -394,6 +395,7 @@ Phiên bản hiện tại không gắn nhãn “hoàn thành chủ đề”. Das
   "pronunciation": "/ˈnuː.dəl/",
   "example": "I like noodles.",
   "exampleMeaning": "Tôi thích mì.",
+  "audioUrl": "",
   "imageUrl": "",
   "order": 0,
   "isVisible": true

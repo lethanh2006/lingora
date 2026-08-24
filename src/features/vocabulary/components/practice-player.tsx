@@ -12,6 +12,7 @@ import type {
   VocabularyTopicDto,
   VocabularyWordDto,
 } from "@/features/vocabulary/schemas/vocabulary.schema";
+import { playPronunciation } from "@/features/vocabulary/components/pronunciation-player";
 
 type GameResult = {
   correctAnswers: number;
@@ -40,14 +41,6 @@ function hashText(value: string) {
 
 function deterministicShuffle<T extends { id: string }>(items: T[], salt: string): T[] {
   return [...items].sort((left, right) => hashText(`${left.id}-${salt}`) - hashText(`${right.id}-${salt}`));
-}
-
-function speak(text: string, languageCode: VocabularyTopicDto["languageCode"]) {
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = languageCode === "ja" ? "ja-JP" : languageCode === "zh" ? "zh-CN" : "en-US";
-  window.speechSynthesis.speak(utterance);
 }
 
 export function PracticePlayer({
@@ -211,7 +204,7 @@ function FlashcardGame({
         </button>
       </div>
       <div className="flex justify-center gap-2">
-        <Button type="button" variant="outline" onClick={() => speak(word.term, languageCode)}><Volume2 className="size-4" /> Nghe phát âm</Button>
+        <Button type="button" variant="outline" onClick={() => void playPronunciation({ text: word.term, languageCode, audioUrl: word.audioUrl })}><Volume2 className="size-4" /> Nghe phát âm</Button>
         {flipped && <><Button type="button" variant="outline" className="border-amber-300 text-amber-700" onClick={() => rate(false)}><RefreshCw className="size-4" /> Chưa nhớ</Button><Button type="button" onClick={() => rate(true)}><Check className="size-4" /> Đã nhớ</Button></>}
       </div>
     </div>
@@ -339,7 +332,7 @@ function FillGame({
           <Input autoFocus value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={Boolean(feedback)} placeholder={languageCode === "en" ? "Nhập từ tiếng Anh..." : languageCode === "ja" ? "Nhập từ tiếng Nhật..." : "Nhập từ tiếng Trung..."} className={`h-14 text-center text-lg font-semibold ${feedback === "correct" ? "border-emerald-400 bg-emerald-50" : feedback === "wrong" ? "border-red-400 bg-red-50" : ""}`} />
           {!feedback ? <Button className="w-full" size="lg" disabled={!answer.trim()}>Kiểm tra</Button> : <div className={`rounded-xl p-3 text-center text-sm font-semibold ${feedback === "correct" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{feedback === "correct" ? <span className="inline-flex items-center gap-1"><Check className="size-4" /> Chính xác!</span> : <span className="inline-flex items-center gap-1"><X className="size-4" /> Đáp án đúng: {word.term}</span>}</div>}
         </form>
-        {feedback && <div className="flex justify-center gap-2"><Button variant="outline" onClick={() => speak(word.term, languageCode)}><Volume2 className="size-4" /> Nghe từ</Button><Button onClick={nextQuestion}>{index === questions.length - 1 ? "Xem kết quả" : "Câu tiếp theo"}</Button></div>}
+        {feedback && <div className="flex justify-center gap-2"><Button variant="outline" onClick={() => void playPronunciation({ text: word.term, languageCode, audioUrl: word.audioUrl })}><Volume2 className="size-4" /> Nghe từ</Button><Button onClick={nextQuestion}>{index === questions.length - 1 ? "Xem kết quả" : "Câu tiếp theo"}</Button></div>}
       </CardContent>
     </Card>
   );

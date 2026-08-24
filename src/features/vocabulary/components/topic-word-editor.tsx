@@ -8,6 +8,7 @@ import { ArrowLeft, Eye, EyeOff, Pencil, Plus, Trash2, Volume2 } from "lucide-re
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { playPronunciation } from "@/features/vocabulary/components/pronunciation-player";
 import type {
   VocabularyTopicDto,
   VocabularyWordDto,
@@ -19,6 +20,7 @@ type WordFormState = {
   pronunciation: string;
   example: string;
   exampleMeaning: string;
+  audioUrl: string;
   imageUrl: string;
   order: number;
   isVisible: boolean;
@@ -31,6 +33,7 @@ function emptyWord(order: number): WordFormState {
     pronunciation: "",
     example: "",
     exampleMeaning: "",
+    audioUrl: "",
     imageUrl: "",
     order,
     isVisible: true,
@@ -44,6 +47,7 @@ function wordToForm(word: VocabularyWordDto): WordFormState {
     pronunciation: word.pronunciation ?? "",
     example: word.example ?? "",
     exampleMeaning: word.exampleMeaning ?? "",
+    audioUrl: word.audioUrl ?? "",
     imageUrl: word.imageUrl ?? "",
     order: word.order,
     isVisible: word.isVisible,
@@ -143,11 +147,11 @@ export function TopicWordEditor({
   }
 
   function speak(word: VocabularyWordDto) {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(word.term);
-    utterance.lang = topic.languageCode === "ja" ? "ja-JP" : topic.languageCode === "zh" ? "zh-CN" : "en-US";
-    window.speechSynthesis.speak(utterance);
+    void playPronunciation({
+      text: word.term,
+      languageCode: topic.languageCode,
+      audioUrl: word.audioUrl,
+    });
   }
 
   return (
@@ -184,6 +188,7 @@ export function TopicWordEditor({
               <div className="space-y-1.5"><label htmlFor="word-pronunciation" className="text-sm font-medium">Phiên âm</label><Input id="word-pronunciation" value={form.pronunciation} onChange={(event) => setForm({ ...form, pronunciation: event.target.value })} placeholder="Ví dụ: /həˈləʊ/ hoặc nǐ hǎo" /></div>
               <div className="space-y-1.5"><label htmlFor="word-example" className="text-sm font-medium">Câu ví dụ</label><textarea id="word-example" className="min-h-20 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" value={form.example} onChange={(event) => setForm({ ...form, example: event.target.value })} /></div>
               <div className="space-y-1.5"><label htmlFor="word-example-meaning" className="text-sm font-medium">Nghĩa câu ví dụ</label><textarea id="word-example-meaning" className="min-h-20 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" value={form.exampleMeaning} onChange={(event) => setForm({ ...form, exampleMeaning: event.target.value })} /></div>
+              <div className="space-y-1.5"><label htmlFor="word-audio" className="text-sm font-medium">URL âm thanh (không bắt buộc)</label><Input id="word-audio" type="url" value={form.audioUrl} onChange={(event) => setForm({ ...form, audioUrl: event.target.value })} placeholder="Sẽ tự điền khi chọn gợi ý tiếng Nhật" /></div>
               <div className="space-y-1.5"><label htmlFor="word-image" className="text-sm font-medium">URL hình ảnh (không bắt buộc)</label><Input id="word-image" type="url" value={form.imageUrl} onChange={(event) => setForm({ ...form, imageUrl: event.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5"><label htmlFor="word-order" className="text-sm font-medium">Thứ tự</label><Input id="word-order" type="number" min={0} value={form.order} onChange={(event) => setForm({ ...form, order: Number(event.target.value) })} /></div>
