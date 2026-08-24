@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { playPronunciation } from "@/features/vocabulary/components/pronunciation-player";
+import { VocabularyTransferActions } from "@/features/vocabulary/components/vocabulary-transfer-actions";
 import type {
   VocabularyTopicDto,
   VocabularyWordDto,
@@ -165,7 +166,8 @@ export function TopicWordEditor({
             <p className="text-sm text-muted-foreground">{words.length} từ trong chủ đề</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          <VocabularyTransferActions endpoint={`/api/admin/topics/${topic.id}/words/transfer`} itemLabel="từ vựng" />
           <Link href="/admin/topics" className={buttonVariants({ variant: "outline" })}><ArrowLeft className="size-4" /> Chủ đề</Link>
           {topic.isVisible && <Link href={`/learn/${topic.id}`} className={buttonVariants()}>Xem như người học</Link>}
         </div>
