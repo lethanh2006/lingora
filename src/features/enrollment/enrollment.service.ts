@@ -50,7 +50,17 @@ export function createEnrollmentService(firestore: Firestore) {
       const snapshot = await enrollmentReference(firestore, userId, programId).get();
       if (!snapshot.exists) return null;
 
-      const enrollment = enrollmentSchema.parse(snapshot.data());
+      const parseResult = enrollmentSchema.safeParse(snapshot.data());
+      if (!parseResult.success) {
+        // Legacy enrollment document doesn't match current schema — treat as not enrolled
+        // so the user can re-enroll cleanly. Log for debugging.
+        console.warn(
+          `[EnrollmentService] getEnrollment: schema mismatch for ${snapshot.ref.path}, treating as null.`,
+          parseResult.error.flatten()
+        );
+        return null;
+      }
+      const enrollment = parseResult.data;
       if (enrollment.programId !== snapshot.id) {
         throw new Error(`Document ${snapshot.ref.path} có programId không khớp path`);
       }
@@ -79,13 +89,19 @@ export function createEnrollmentService(firestore: Firestore) {
         if (program.status !== "published") throw new EnrollmentProgramUnavailableError();
 
         if (enrollmentSnapshot.exists) {
-          const enrollment = enrollmentSchema.parse(enrollmentSnapshot.data());
-          if (enrollment.programId !== enrollmentSnapshot.id) {
-            throw new Error(
-              `Document ${enrollmentSnapshot.ref.path} có programId không khớp path`,
-            );
+          const existing = enrollmentSchema.safeParse(enrollmentSnapshot.data());
+          if (existing.success) {
+            if (existing.data.programId !== enrollmentSnapshot.id) {
+              throw new Error(
+                `Document ${enrollmentSnapshot.ref.path} có programId không khớp path`,
+              );
+            }
+            return { enrollment: existing.data, created: false };
           }
-          return { enrollment, created: false };
+          // Legacy document: fall through to overwrite with new format below
+          console.warn(
+            `[EnrollmentService] enroll: legacy enrollment for ${enrollmentSnapshot.ref.path}, will overwrite.`,
+          );
         }
 
         const now = Timestamp.now();
@@ -101,7 +117,8 @@ export function createEnrollmentService(firestore: Firestore) {
           enrolledAt: now,
           lastActivityAt: now,
         });
-        transaction.create(targetReference, enrollment);
+        // Use set() instead of create() so this works even when a seed document already exists
+        transaction.set(targetReference, enrollment);
         return { enrollment, created: true };
       });
     },
