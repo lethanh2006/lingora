@@ -46,7 +46,6 @@ export async function runDataRetentionCleanup(
 async function deleteExpiredIdempotencyKeys(db: Firestore, now: Date): Promise<number> {
   let totalDeleted = 0;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const snap = await db
       .collection(COLLECTIONS.idempotencyKeys)
@@ -73,7 +72,6 @@ async function deleteExpiredIdempotencyKeys(db: Firestore, now: Date): Promise<n
 async function deleteExpiredRateLimits(db: Firestore, now: Date): Promise<number> {
   let totalDeleted = 0;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const snap = await db
       .collection(COLLECTIONS.rateLimits)

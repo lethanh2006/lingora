@@ -5,7 +5,7 @@ import { COLLECTIONS } from "@/lib/firebase/collections";
 import { hasValidOrigin, jsonError } from "@/lib/http";
 import { stableIdSchema } from "@/features/content/schemas/content.schema";
 import { Timestamp } from "firebase-admin/firestore";
-import { writeAuditLogInTransaction, AUDIT_ACTIONS } from "@/lib/audit-log";
+import { writeAuditLogInTransaction } from "@/lib/audit-log";
 
 const workflowRequestSchema = z.object({
   lessonId: stableIdSchema,

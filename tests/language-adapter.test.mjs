@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { normalizeText, normalizePinyin } from "../src/features/content/adapters/language-adapter.ts";
+import { normalizeText } from "../src/features/content/adapters/language-adapter.ts";
 
 test("Language Adapter - English normalization", () => {
   // Case sensitive

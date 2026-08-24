@@ -9,7 +9,7 @@
  *  - Cung cấp hằng số kiểu AuditAction để tránh string literal phân tán.
  */
 
-import type { Firestore } from "firebase-admin/firestore";
+import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { COLLECTIONS } from "./firebase/collections.ts";
 import { AUDIT_LOG_SCHEMA_VERSION } from "../features/content/schemas/audit-log.schema.ts";
 import { logger } from "./logger.ts";
@@ -90,8 +90,7 @@ export async function writeAuditLog(
  * Dùng khi muốn audit log và nghiệp vụ chính là atomic.
  */
 export function writeAuditLogInTransaction(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  transaction: any,
+  transaction: Transaction,
   db: Firestore,
   options: WriteAuditLogOptions,
 ): void {

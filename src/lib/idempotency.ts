@@ -24,8 +24,8 @@ export interface IdempotencyRecord {
   action: string;
   status: IdempotencyStatus;
   responseBody: unknown;
-  createdAt: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  expiresAt: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  createdAt: any;
+  expiresAt: any;
 }
 
 export type IdempotencyResult =

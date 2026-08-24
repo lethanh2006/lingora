@@ -32,7 +32,7 @@ function makeDb() {
   };
 }
 
-function makeTransaction(db) {
+function makeTransaction() {
   const ops = [];
   const tx = {
     _ops: ops,
@@ -118,7 +118,7 @@ test("writeAuditLog: does not throw even when db.add fails", async () => {
 
 test("writeAuditLogInTransaction: queues a create op on the transaction", () => {
   const db = makeDb();
-  const { tx, ops } = makeTransaction(db);
+  const { tx, ops } = makeTransaction();
 
   writeAuditLogInTransaction(tx, db, {
     actorUid: "admin-002",

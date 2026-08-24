@@ -93,7 +93,7 @@ type ActivityProgressState = {
   completed: boolean;
   score?: number | null;
   attempts?: number;
-  lastResponse?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  lastResponse?: unknown;
 };
 
 export function LessonPlayer({ lessonRevision }: LessonPlayerProps) {

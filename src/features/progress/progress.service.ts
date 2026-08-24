@@ -16,7 +16,7 @@ export type UpdateLessonProgressInput = {
       completed: boolean;
       score?: number | null;
       attempts?: number;
-      lastResponse?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      lastResponse?: unknown;
     }
   >;
   completedRequiredCount: number;
@@ -52,7 +52,7 @@ export function createProgressService(db: Firestore) {
       const existingSnap = await progressRef.get();
       const now = Timestamp.now();
 
-      let progressData: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      let progressData: unknown;
       let wasCompleted = false;
 
       if (existingSnap.exists) {
@@ -93,7 +93,7 @@ export function createProgressService(db: Firestore) {
           lastActivityAt: now,
         };
       } else {
-        const boundedActivityState: Record<string, any> = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const boundedActivityState: Record<string, unknown> = {};
         for (const [actId, state] of Object.entries(input.boundedActivityState)) {
           boundedActivityState[actId] = {
             completed: state.completed,

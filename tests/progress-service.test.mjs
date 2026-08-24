@@ -116,8 +116,6 @@ test("progress service: getLessonProgress returns null when no progress exists",
 test("progress service: updateLessonProgress creates a new document", async () => {
   const db = createMockDb();
   const service = createProgressService(db);
-  const now = Timestamp.now();
-
   const progress = await service.updateLessonProgress("user1", "lesson1", {
     lessonRevisionId: "lessonRev1",
     status: "in_progress",
@@ -263,4 +261,3 @@ test("progress service: generate review items on lesson completion", async () =>
   assert.equal(reviewItem.lapseCount, 0);
   assert.equal(reviewItem.schedulerVersion, "simple-sm2-v1");
 });
-

@@ -31,7 +31,6 @@ function makeMockDb({ idempotencyDocs = [], rateLimitDocs = [] } = {}) {
 
     collection(name) {
       const store = stores[name];
-      const deleted = deletedIds[name];
       let _whereField = null;
       let _whereValue = null;
       let _limit = Infinity;

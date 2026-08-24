@@ -38,7 +38,7 @@ function createMockDb(initialData = {}) {
               for (const [key, item] of store.entries()) {
                 if (!key.startsWith(`${collectionName}/`)) continue;
                 let matches = true;
-                for (const [f, o, v] of filters) {
+                for (const [f, , v] of filters) {
                   if (item[f] !== v) {
                     matches = false;
                     break;
