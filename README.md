@@ -9,6 +9,7 @@ Tài liệu sản phẩm, luồng, dữ liệu và tiêu chí nghiệm thu chín
 - Đăng ký/đăng nhập bằng email, mật khẩu hoặc Google.
 - Dashboard chỉ hiển thị tiến độ thật của từng tài khoản.
 - Danh sách từ vựng theo chủ đề cho tiếng Anh, Nhật và Trung.
+- Bộ từ cốt lõi theo 18 cấp CEFR, JLPT tham chiếu và HSK hiện hành.
 - Phát file audio đã lưu; tự chuyển sang Web Speech API khi URL thiếu hoặc lỗi.
 - Ghép từ với nghĩa và điền từ theo nghĩa tiếng Việt.
 - Tiến độ riêng theo UID: số phiên, từ đã ghi nhớ, điểm tốt nhất và chuỗi ngày luyện.
@@ -49,9 +50,9 @@ npm run dev
 
 Mở `http://localhost:3000`.
 
-## Khởi tạo nội dung mẫu
+## Khởi tạo nội dung từ vựng
 
-Script mới chỉ tạo `vocabularyTopics` và `vocabularyWords`; không tạo tiến độ giả cho người dùng.
+Script tạo 3 chủ đề chào hỏi cùng 18 chủ đề phân cấp, tổng cộng 21 chủ đề và 384 từ. Mỗi cấp có 20 từ cốt lõi đã biên tập nghĩa tiếng Việt; nguồn và giấy phép được ghi tại [THIRD_PARTY_VOCABULARY.md](./THIRD_PARTY_VOCABULARY.md). Script chỉ tạo `vocabularyTopics` và `vocabularyWords`, không tạo tiến độ giả cho người dùng.
 
 Với Firestore Emulator:
 
@@ -135,6 +136,8 @@ src/features/vocabulary/
 ├── components/                    UI chủ đề, admin và trò chơi
 ├── schemas/vocabulary.schema.ts   contract dữ liệu
 ├── seed/starter-vocabulary.ts     dữ liệu mẫu
+├── seed/graded-vocabulary.ts      seed CEFR, JLPT và HSK
+├── seed/graded-*-vocabulary.ts    dữ liệu 20 từ cốt lõi mỗi cấp
 ├── japanese-word-suggestion.service.ts  Jotoba + bản dịch tiếng Việt
 ├── vocabulary-admin.service.ts    mutation admin + transaction wordCount
 ├── vocabulary-csv.ts              đọc/ghi CSV an toàn

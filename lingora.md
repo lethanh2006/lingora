@@ -506,11 +506,14 @@ Server xác minh:
 
 ## 13. Seed và môi trường
 
-Dữ liệu mẫu gồm 3 chủ đề và 24 từ:
+Dữ liệu seed gồm 21 chủ đề và 384 từ:
 
-- Chào hỏi tiếng Anh.
-- Chào hỏi tiếng Nhật.
-- Chào hỏi tiếng Trung.
+- 3 chủ đề chào hỏi với tổng cộng 24 từ.
+- 6 chủ đề tiếng Anh CEFR A1–C2, mỗi cấp 20 từ.
+- 5 chủ đề tiếng Nhật tham chiếu JLPT N5–N1, mỗi cấp 20 từ. Đây không phải danh sách chính thức của JLPT.
+- 7 chủ đề tiếng Trung HSK 1–6 và 7–9, mỗi cấp 20 từ.
+
+Nguồn, phiên bản, thay đổi và giấy phép dữ liệu được ghi tại [THIRD_PARTY_VOCABULARY.md](./THIRD_PARTY_VOCABULARY.md).
 
 Chạy:
 
