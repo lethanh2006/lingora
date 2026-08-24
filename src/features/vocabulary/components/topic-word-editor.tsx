@@ -8,6 +8,8 @@ import { ArrowLeft, Eye, EyeOff, Pencil, Plus, Trash2, Volume2 } from "lucide-re
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { applyWordSuggestion } from "@/features/vocabulary/apply-word-suggestion";
+import { JapaneseWordSuggestionField } from "@/features/vocabulary/components/japanese-word-suggestion-field";
 import { playPronunciation } from "@/features/vocabulary/components/pronunciation-player";
 import { VocabularyTransferActions } from "@/features/vocabulary/components/vocabulary-transfer-actions";
 import type {
@@ -73,6 +75,7 @@ export function TopicWordEditor({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const showJapaneseSuggestions = topic.languageCode === "ja" && editingId === null;
 
   function resetForm() {
     setEditingId(null);
@@ -184,13 +187,54 @@ export function TopicWordEditor({
           <CardContent>
             <form className="space-y-4" onSubmit={saveWord}>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><label htmlFor="word-term" className="text-sm font-medium">Từ / cụm từ *</label><Input id="word-term" value={form.term} onChange={(event) => setForm({ ...form, term: event.target.value })} required /></div>
-                <div className="space-y-1.5"><label htmlFor="word-meaning" className="text-sm font-medium">Nghĩa tiếng Việt *</label><Input id="word-meaning" value={form.meaning} onChange={(event) => setForm({ ...form, meaning: event.target.value })} required /></div>
+                {showJapaneseSuggestions ? (
+                  <div className="col-span-2">
+                    <JapaneseWordSuggestionField
+                      topicId={topic.id}
+                      value={form.term}
+                      disabled={pending}
+                      onValueChange={(term) => {
+                        setForm((current) => ({ ...current, term }));
+                        setNotice(null);
+                      }}
+                      onApply={(detail) => {
+                        setForm((current) => applyWordSuggestion(current, detail));
+                        setError(null);
+                        setNotice(
+                          !detail.meaning
+                            ? "Đã điền cách đọc và dữ liệu nguồn nhưng chưa dịch được nghĩa tiếng Việt. Vui lòng nhập nghĩa trước khi lưu."
+                            : detail.audioUrl
+                            ? "Đã tự điền cách đọc, nghĩa, ví dụ và audio. Hãy kiểm tra trước khi lưu."
+                            : "Đã tự điền dữ liệu. Từ này chưa có file audio nên sẽ dùng giọng đọc trình duyệt.",
+                        );
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-1.5"><label htmlFor="word-term" className="text-sm font-medium">Từ / cụm từ *</label><Input id="word-term" value={form.term} onChange={(event) => setForm({ ...form, term: event.target.value })} required /></div>
+                )}
+                <div className={showJapaneseSuggestions ? "col-span-2 space-y-1.5" : "space-y-1.5"}><label htmlFor="word-meaning" className="text-sm font-medium">Nghĩa tiếng Việt *</label><Input id="word-meaning" value={form.meaning} onChange={(event) => setForm({ ...form, meaning: event.target.value })} required /></div>
               </div>
               <div className="space-y-1.5"><label htmlFor="word-pronunciation" className="text-sm font-medium">Phiên âm</label><Input id="word-pronunciation" value={form.pronunciation} onChange={(event) => setForm({ ...form, pronunciation: event.target.value })} placeholder="Ví dụ: /həˈləʊ/ hoặc nǐ hǎo" /></div>
               <div className="space-y-1.5"><label htmlFor="word-example" className="text-sm font-medium">Câu ví dụ</label><textarea id="word-example" className="min-h-20 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" value={form.example} onChange={(event) => setForm({ ...form, example: event.target.value })} /></div>
               <div className="space-y-1.5"><label htmlFor="word-example-meaning" className="text-sm font-medium">Nghĩa câu ví dụ</label><textarea id="word-example-meaning" className="min-h-20 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30" value={form.exampleMeaning} onChange={(event) => setForm({ ...form, exampleMeaning: event.target.value })} /></div>
-              <div className="space-y-1.5"><label htmlFor="word-audio" className="text-sm font-medium">URL âm thanh (không bắt buộc)</label><Input id="word-audio" type="url" value={form.audioUrl} onChange={(event) => setForm({ ...form, audioUrl: event.target.value })} placeholder="Sẽ tự điền khi chọn gợi ý tiếng Nhật" /></div>
+              <div className="space-y-1.5">
+                <label htmlFor="word-audio" className="text-sm font-medium">URL âm thanh (không bắt buộc)</label>
+                <div className="flex gap-2">
+                  <Input id="word-audio" type="url" value={form.audioUrl} onChange={(event) => setForm({ ...form, audioUrl: event.target.value })} placeholder="Sẽ tự điền khi chọn gợi ý tiếng Nhật" />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={!form.term.trim()}
+                    aria-label="Nghe thử cách phát âm"
+                    title="Nghe thử"
+                    onClick={() => void playPronunciation({ text: form.term, languageCode: topic.languageCode, audioUrl: form.audioUrl })}
+                  >
+                    <Volume2 className="size-4" />
+                  </Button>
+                </div>
+              </div>
               <div className="space-y-1.5"><label htmlFor="word-image" className="text-sm font-medium">URL hình ảnh (không bắt buộc)</label><Input id="word-image" type="url" value={form.imageUrl} onChange={(event) => setForm({ ...form, imageUrl: event.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5"><label htmlFor="word-order" className="text-sm font-medium">Thứ tự</label><Input id="word-order" type="number" min={0} value={form.order} onChange={(event) => setForm({ ...form, order: Number(event.target.value) })} /></div>

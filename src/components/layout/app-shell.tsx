@@ -35,6 +35,9 @@ export async function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <main className="min-w-0">{children}</main>
       </div>
+      <footer className="mx-auto max-w-6xl px-4 pb-6 text-center text-[10px] leading-4 text-muted-foreground sm:px-6">
+        Audio tiếng Nhật: <a className="underline" href="https://github.com/kanjialive/kanji-data-media" target="_blank" rel="noreferrer">Kanji Alive (CC BY 4.0)</a> và <a className="underline" href="https://github.com/tofugu/japanese-vocabulary-pronunciation-audio" target="_blank" rel="noreferrer">Tofugu (CC BY-SA 4.0)</a>, phân phối qua <a className="underline" href="https://jotoba.de/about" target="_blank" rel="noreferrer">Jotoba</a>.
+      </footer>
     </div>
   );
 }
