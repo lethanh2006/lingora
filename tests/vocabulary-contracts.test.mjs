@@ -8,6 +8,7 @@ import {
 } from "../src/features/vocabulary/schemas/vocabulary.schema.ts";
 import { createStarterVocabularySeed } from "../src/features/vocabulary/seed/starter-vocabulary.ts";
 import { slugifyTopicTitle } from "../src/features/vocabulary/vocabulary-admin.service.ts";
+import { createVocabularyProgressService } from "../src/features/vocabulary/vocabulary-progress.service.ts";
 import { calculatePracticeStreak } from "../src/features/vocabulary/vocabulary-stats.ts";
 import { timestamp } from "./fixtures/content.mjs";
 
@@ -64,4 +65,42 @@ test("practice streak starts from today or yesterday and ignores duplicates", ()
   assert.equal(calculatePracticeStreak(["2026-08-21", "2026-08-20", "2026-08-20", "2026-08-19"], "2026-08-21"), 3);
   assert.equal(calculatePracticeStreak(["2026-08-20", "2026-08-19"], "2026-08-21"), 2);
   assert.equal(calculatePracticeStreak(["2026-08-18"], "2026-08-21"), 0);
+});
+
+test("dashboard practice days use the indexed date field and ignore empty days", async () => {
+  const queryCalls = [];
+  const documents = [
+    { id: "2026-08-24", sessionsCompleted: 2 },
+    { id: "2026-08-23", sessionsCompleted: 0 },
+    { id: "2026-08-22", sessionsCompleted: 1 },
+  ];
+  const query = {
+    orderBy(field, direction) {
+      queryCalls.push(["orderBy", field, direction]);
+      return query;
+    },
+    limit(value) {
+      queryCalls.push(["limit", value]);
+      return query;
+    },
+    async get() {
+      return {
+        docs: documents.map(({ id, ...data }) => ({ id, data: () => data })),
+      };
+    },
+  };
+  const db = {
+    collection() {
+      return {
+        doc() {
+          return { collection: () => query };
+        },
+      };
+    },
+  };
+
+  const dates = await createVocabularyProgressService(db).listActivePracticeDateIds("user-1");
+
+  assert.deepEqual(queryCalls, [["orderBy", "date", "desc"], ["limit", 90]]);
+  assert.deepEqual(dates, ["2026-08-24", "2026-08-22"]);
 });

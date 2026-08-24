@@ -1,4 +1,3 @@
-import { FieldPath } from "firebase-admin/firestore";
 import { Brain, Flame, Gamepad2, Sparkles } from "lucide-react";
 import Link from "next/link";
 
@@ -10,21 +9,20 @@ import { createVocabularyRepository } from "@/features/vocabulary/vocabulary.rep
 import { calculatePracticeStreak } from "@/features/vocabulary/vocabulary-stats";
 import { requireUser } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { COLLECTIONS, USER_SUBCOLLECTIONS } from "@/lib/firebase/collections";
 
 export default async function DashboardPage() {
   const user = await requireUser();
   const db = getAdminDb();
+  const progressService = createVocabularyProgressService(db);
   const [topics, progressItems, practiceDays] = await Promise.all([
     createVocabularyRepository(db).listTopics(),
-    createVocabularyProgressService(db).listProgress(user.uid),
-    db.collection(COLLECTIONS.users).doc(user.uid).collection(USER_SUBCOLLECTIONS.practiceDays).orderBy(FieldPath.documentId(), "desc").limit(90).get(),
+    progressService.listProgress(user.uid),
+    progressService.listActivePracticeDateIds(user.uid),
   ]);
   const progressByTopic = new Map(progressItems.map((progress) => [progress.topicId, progress]));
   const masteredWordIds = new Set(progressItems.flatMap((progress) => progress.masteredWordIds));
   const sessionsCompleted = progressItems.reduce((total, progress) => total + progress.sessionsCompleted, 0);
-  const activeDateIds = practiceDays.docs.filter((document) => Number(document.data().sessionsCompleted ?? 0) > 0).map((document) => document.id);
-  const streak = calculatePracticeStreak(activeDateIds, getVietnamDateId());
+  const streak = calculatePracticeStreak(practiceDays, getVietnamDateId());
   const hasProgress = sessionsCompleted > 0;
 
   const stats = [

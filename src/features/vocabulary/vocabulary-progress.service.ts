@@ -47,6 +47,20 @@ export function createVocabularyProgressService(db: Firestore) {
       });
     },
 
+    async listActivePracticeDateIds(userId: string, maxDays = 90): Promise<string[]> {
+      const snapshot = await db
+        .collection(COLLECTIONS.users)
+        .doc(userId)
+        .collection(USER_SUBCOLLECTIONS.practiceDays)
+        .orderBy("date", "desc")
+        .limit(maxDays)
+        .get();
+
+      return snapshot.docs
+        .filter((document) => Number(document.data().sessionsCompleted ?? 0) > 0)
+        .map((document) => document.id);
+    },
+
     async recordSession(userId: string, input: PracticeSessionInput): Promise<TopicProgressDto> {
       const progressRef = db
         .collection(COLLECTIONS.users)
