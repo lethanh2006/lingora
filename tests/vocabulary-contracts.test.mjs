@@ -25,6 +25,22 @@ test("starter vocabulary contains visible topics and words", () => {
   assert.equal(new Set(documents.map(({ collection, id }) => `${collection}/${id}`)).size, 27);
 });
 
+test("starter vocabulary stores IPA, kana and pinyin in the matching topics", () => {
+  const documents = createStarterVocabularySeed(timestamp);
+  const languageByTopic = new Map(
+    documents
+      .filter(({ collection }) => collection === "vocabularyTopics")
+      .map(({ id, data }) => [id, data.languageCode]),
+  );
+  const pronunciations = documents
+    .filter(({ collection }) => collection === "vocabularyWords")
+    .map(({ data }) => ({ languageCode: languageByTopic.get(data.topicId), value: data.pronunciation }));
+
+  assert.ok(pronunciations.filter(({ languageCode }) => languageCode === "en").every(({ value }) => /^\/.+\/$/u.test(value)));
+  assert.ok(pronunciations.filter(({ languageCode }) => languageCode === "ja").every(({ value }) => !/[a-z]/iu.test(value) && /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(value)));
+  assert.ok(pronunciations.filter(({ languageCode }) => languageCode === "zh").every(({ value }) => /[a-z]/iu.test(value) && !value.includes("/")));
+});
+
 test("vocabulary fields use pronunciation conventions for each language", () => {
   assert.deepEqual(
     ["en", "ja", "zh"].map((languageCode) => {
