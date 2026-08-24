@@ -62,7 +62,7 @@ export function createExamCompiler(db: Firestore) {
     async compileExamForm(
       blueprint: ExamBlueprint,
       blueprintVersion: number,
-      _randomSeed?: number // Optional seed for deterministic selection in tests
+      randomSeed?: number,
     ): Promise<ExamFormVersion> {
       const publicSectionSnapshots: PublicSectionSnapshot[] = [];
       const orderedQuestionVersionIds: string[] = [];
@@ -108,13 +108,14 @@ export function createExamCompiler(db: Firestore) {
             );
           }
 
-          // Select questions. If randomSeed or random selection is used, sort or shuffle.
-          // For simplicity and predictability, sort by ID to ensure stable selection if no seed,
-          // or shuffle if desired. Let's do a deterministic selection by sorting by ID first.
-          const sortedCandidates = [...candidates].sort((a, b) => a.id.localeCompare(b.id));
+          const sortedCandidates = [...candidates].sort((a, b) => {
+            if (randomSeed === undefined) return a.id.localeCompare(b.id);
 
-          // If a seed or shuffle is requested, we can shuffle deterministically.
-          // Let's pick the first `questionCount` candidates.
+            const aRank = createHash("sha256").update(`${randomSeed}:${a.id}`).digest("hex");
+            const bRank = createHash("sha256").update(`${randomSeed}:${b.id}`).digest("hex");
+            return aRank.localeCompare(bRank) || a.id.localeCompare(b.id);
+          });
+
           const selected = sortedCandidates.slice(0, slot.questionCount);
 
           for (const qv of selected) {
