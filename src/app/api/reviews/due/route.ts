@@ -11,29 +11,61 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limitParam = searchParams.get("limit");
   const limitVal = limitParam ? Math.min(100, Math.max(1, parseInt(limitParam) || 30)) : 30;
+  const programId = searchParams.get("programId") ?? null;
+  const mode = searchParams.get("mode") ?? "due"; // "due" | "all"
 
   try {
     const db = getAdminDb();
     const now = Timestamp.now();
 
-    // Query due items within users/{uid}/reviewItems
-    const snap = await db
+    // Build base query
+    let query = db
       .collection(COLLECTIONS.users)
       .doc(user.uid)
-      .collection(USER_SUBCOLLECTIONS.reviewItems)
-      .where("dueAt", "<=", now)
-      .orderBy("dueAt", "asc")
-      .limit(limitVal * 2) // Fetch a bit more to allow for in-memory filtering of suspended/mastered
-      .get();
+      .collection(USER_SUBCOLLECTIONS.reviewItems) as FirebaseFirestore.Query;
 
-    const allItems = snap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    })) as any[];
+    if (mode === "due") {
+      query = query.where("dueAt", "<=", now);
+    }
 
-    // Filter out mastered and suspended items in-memory
+    if (programId) {
+      query = query.where("programId", "==", programId);
+    }
+
+    // Firestore compound queries need composite indexes; fall back to in-memory sort
+    let snap;
+    try {
+      snap = await query
+        .orderBy("dueAt", "asc")
+        .limit(limitVal * 2)
+        .get();
+    } catch (indexErr: unknown) {
+      const msg = String(indexErr);
+      if (msg.includes("requires an index") || msg.includes("FAILED_PRECONDITION")) {
+        // Fallback: fetch without ordering, sort in memory
+        snap = await query.limit(limitVal * 4).get();
+      } else {
+        throw indexErr;
+      }
+    }
+
+    const allItems = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() })) as any[];
+
+    // Filter items
     const filteredItems = allItems
-      .filter((item) => item.state !== "mastered" && item.state !== "suspended")
+      .filter((item) => {
+        if (item.state === "suspended") return false;
+        if (mode === "due") {
+          return item.state !== "mastered";
+        }
+        return true; // mode === "all" includes mastered & future-due cards
+      })
+      .sort((a, b) => {
+        const aMs = a.dueAt?.seconds ?? 0;
+        const bMs = b.dueAt?.seconds ?? 0;
+        return aMs - bMs;
+      })
       .slice(0, limitVal);
 
     if (filteredItems.length === 0) {
