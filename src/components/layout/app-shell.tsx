@@ -32,7 +32,10 @@ export async function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <div className="mx-auto grid w-full min-w-0 max-w-6xl grid-cols-1 gap-7 px-4 py-6 sm:px-6 md:grid-cols-[190px_minmax(0,1fr)] md:py-8">
-        <nav className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain md:flex-col" aria-label="Điều hướng ứng dụng">
+        <nav
+          className="sticky top-16 z-20 flex w-full min-w-0 max-w-full self-start gap-2 overflow-x-auto overscroll-x-contain rounded-xl border bg-background/95 p-2 shadow-sm backdrop-blur md:static md:z-auto md:self-auto md:flex-col md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none"
+          aria-label="Điều hướng ứng dụng"
+        >
           {navigation.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="inline-flex h-10 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition hover:bg-background hover:text-foreground">
               <Icon className="size-4" aria-hidden="true" />

@@ -59,7 +59,10 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
         </aside>
 
         <div className="w-full min-w-0 max-w-full">
-          <nav className="flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b bg-background px-4 py-3 md:hidden" aria-label="Điều hướng quản trị di động">
+          <nav
+            className="sticky top-16 z-20 flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b bg-background/95 px-4 py-3 shadow-sm backdrop-blur md:hidden"
+            aria-label="Điều hướng quản trị di động"
+          >
             {adminNavigation.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
