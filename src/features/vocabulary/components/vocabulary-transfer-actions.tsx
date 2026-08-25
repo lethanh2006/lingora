@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Download, Upload } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ImportSummary = {
   total: number;
@@ -66,18 +67,27 @@ export function VocabularyTransferActions({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <a href={endpoint} className={buttonVariants({ variant: "outline", size: "sm" })}>
+    <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+      <a
+        href={endpoint}
+        className={cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "h-11 w-full px-2 sm:w-auto sm:px-3",
+        )}
+      >
         <Download className="size-4" /> Xuất CSV
       </a>
       <Button
+        className="h-11 w-full px-2 sm:w-auto sm:px-3"
         type="button"
         size="sm"
         variant="outline"
         onClick={() => fileInput.current?.click()}
         disabled={pending}
       >
-        <Upload className="size-4" /> {pending ? "Đang kiểm tra..." : "Nhập CSV"}
+        <Upload className="size-4" />
+        <span className="sm:hidden">{pending ? "Đang xử lý" : "Nhập CSV"}</span>
+        <span className="hidden sm:inline">{pending ? "Đang kiểm tra..." : "Nhập CSV"}</span>
       </Button>
       <input
         ref={fileInput}
@@ -87,8 +97,8 @@ export function VocabularyTransferActions({
         onChange={importFile}
         aria-label={`Chọn tệp CSV để import ${itemLabel}`}
       />
-      {error && <p role="alert" className="basis-full text-xs font-medium text-destructive">{error}</p>}
-      {notice && <p role="status" className="basis-full text-xs font-medium text-emerald-700">{notice}</p>}
+      {error && <p role="alert" className="col-span-2 min-w-0 break-words text-xs font-medium text-destructive sm:w-full sm:basis-full">{error}</p>}
+      {notice && <p role="status" className="col-span-2 min-w-0 break-words text-xs font-medium text-emerald-700 sm:w-full sm:basis-full">{notice}</p>}
     </div>
   );
 }

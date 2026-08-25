@@ -18,7 +18,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen min-w-0 overflow-x-clip bg-muted/40">
+    <div className="min-h-dvh min-w-0 bg-muted/40">
       {user && (
         <AppActivityTracker
           userId={user.uid}

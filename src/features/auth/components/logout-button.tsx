@@ -41,7 +41,7 @@ export function LogoutButton() {
   }
 
   return (
-    <Button variant="ghost" size="sm" onClick={logout} disabled={isLoading}>
+    <Button className="h-11" variant="ghost" size="sm" onClick={logout} disabled={isLoading}>
       <LogOut className="size-4" aria-hidden="true" />
       {isLoading ? "Đang thoát..." : "Đăng xuất"}
     </Button>

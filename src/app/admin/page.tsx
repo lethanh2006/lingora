@@ -8,6 +8,7 @@ import { createVocabularyRepository } from "@/features/vocabulary/vocabulary.rep
 import { requireAdmin } from "@/lib/auth/session";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Quản trị từ vựng – Lingora" };
 
@@ -32,7 +33,7 @@ export default async function AdminPage() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-primary">Quản trị nội dung</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Xin chào, {user.displayName}</h1>
+          <h1 className="mt-1 break-words text-2xl font-bold tracking-tight sm:text-3xl">Xin chào, {user.displayName}</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Quản lý đúng hai thứ: chủ đề và từ vựng. Không cần biên dịch, duyệt hay xuất bản.
           </p>
@@ -63,7 +64,7 @@ export default async function AdminPage() {
         <Card className="min-w-0">
           <CardHeader className="flex-col items-start gap-2 space-y-0 min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between">
             <CardTitle className="text-lg">Chủ đề gần đây</CardTitle>
-            <Link href="/admin/topics" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+            <Link href="/admin/topics" className="flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary/5 hover:underline">
               Quản lý tất cả <ArrowRight className="size-4" />
             </Link>
           </CardHeader>
@@ -105,7 +106,7 @@ export default async function AdminPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>Mọi chủ đề và từ đang bật “Hiển thị” dùng chung dữ liệu với giao diện người học.</p>
-            <Link href="/learn" className={buttonVariants({ variant: "outline" })}>
+            <Link href="/learn" className={cn(buttonVariants({ variant: "outline" }), "h-11")}>
               Xem giao diện học
             </Link>
           </CardContent>
