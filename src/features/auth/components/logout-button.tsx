@@ -15,6 +15,22 @@ export function LogoutButton() {
   async function logout() {
     setIsLoading(true);
     try {
+      try {
+        if ("serviceWorker" in navigator) {
+          const registration = await navigator.serviceWorker.getRegistration("/");
+          const subscription = await registration?.pushManager.getSubscription();
+          if (subscription) {
+            await fetch("/api/push/subscription", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ endpoint: subscription.endpoint }),
+            }).catch(() => null);
+            await subscription.unsubscribe().catch(() => false);
+          }
+        }
+      } catch {
+        // Push cleanup must never prevent a user from signing out.
+      }
       await signOut(getFirebaseAuth());
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {

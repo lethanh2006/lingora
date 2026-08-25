@@ -157,6 +157,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /pushSubscriptions/{documentId} {
+      allow read, write: if false;
+    }
+
     match /publishJobs/{documentId} {
       allow read, write: if false;
     }

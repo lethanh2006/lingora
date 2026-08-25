@@ -7,7 +7,7 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "test": "node --conditions=react-server --test tests/vocabulary-contracts.test.mjs tests/vocabulary-csv.test.mjs tests/vocabulary-import.test.mjs tests/graded-vocabulary.test.mjs tests/japanese-word-suggestion.test.mjs tests/apply-word-suggestion.test.mjs tests/word-suggestions-api.test.mjs tests/content-contracts.test.mjs tests/enrollment-contracts.test.mjs tests/pilot-seed.test.mjs tests/publish-lesson.test.mjs tests/progress-contracts.test.mjs tests/progress-service.test.mjs tests/assessment-contracts.test.mjs tests/publish-flow.test.mjs tests/language-adapter.test.mjs tests/review-scheduler.test.mjs tests/assessment-repository.test.mjs tests/exam-compiler.test.mjs tests/attempt-service.test.mjs tests/question-editor-api.test.mjs tests/sources-api.test.mjs tests/content-api.test.mjs tests/exams-api.test.mjs tests/workflow-api.test.mjs tests/account-deletion.test.mjs tests/rate-limiter.test.mjs tests/idempotency.test.mjs tests/data-retention.test.mjs tests/audit-log.test.mjs tests/health-check.test.mjs",
+    "test": "node --conditions=react-server --test tests/vocabulary-contracts.test.mjs tests/vocabulary-csv.test.mjs tests/vocabulary-import.test.mjs tests/graded-vocabulary.test.mjs tests/japanese-word-suggestion.test.mjs tests/apply-word-suggestion.test.mjs tests/word-suggestions-api.test.mjs tests/content-contracts.test.mjs tests/enrollment-contracts.test.mjs tests/pilot-seed.test.mjs tests/publish-lesson.test.mjs tests/progress-contracts.test.mjs tests/progress-service.test.mjs tests/assessment-contracts.test.mjs tests/publish-flow.test.mjs tests/language-adapter.test.mjs tests/review-scheduler.test.mjs tests/study-reminder.test.mjs tests/assessment-repository.test.mjs tests/exam-compiler.test.mjs tests/attempt-service.test.mjs tests/question-editor-api.test.mjs tests/sources-api.test.mjs tests/content-api.test.mjs tests/exams-api.test.mjs tests/workflow-api.test.mjs tests/account-deletion.test.mjs tests/rate-limiter.test.mjs tests/idempotency.test.mjs tests/data-retention.test.mjs tests/audit-log.test.mjs tests/health-check.test.mjs",
     "test:rules": "firebase emulators:exec --project demo-lingora --only firestore \"node --test tests/firestore-rules.test.mjs\"",
     "test:seed": "firebase emulators:exec --project demo-lingora --only firestore \"node --conditions=react-server --test tests/firestore-seed.test.mjs\"",
     "test:catalog": "firebase emulators:exec --project demo-lingora --only firestore \"node --conditions=react-server --test tests/firestore-catalog.test.mjs\"",
@@ -18,6 +18,7 @@
     "make-admin": "node --env-file-if-exists=.env.local scripts/make-admin.mjs",
     "profile:queries": "node --env-file-if-exists=.env.local scripts/query-diagnostics.mjs",
     "cleanup:retention": "node --env-file-if-exists=.env.local --conditions=react-server scripts/cleanup-expired-records.mjs",
+    "push:keys": "web-push generate-vapid-keys",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run test && npm run typecheck && npm run lint && npm run build"
@@ -36,6 +37,7 @@
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0",
+    "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
   "overrides": {
@@ -49,6 +51,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "firebase-tools": "^15.27.0",

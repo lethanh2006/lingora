@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studyReminder.enabled", "order": "ASCENDING" },
+        { "fieldPath": "studyReminder.nextReminderAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "programs",
       "queryScope": "COLLECTION",
       "fields": [
@@ -138,6 +146,8 @@
     { "collectionGroup": "contentLessons", "fieldPath": "objectives", "indexes": [] },
     { "collectionGroup": "contentLessons", "fieldPath": "summary", "indexes": [] },
     { "collectionGroup": "contentLessons", "fieldPath": "validationReport", "indexes": [] },
+    { "collectionGroup": "pushSubscriptions", "fieldPath": "endpoint", "indexes": [] },
+    { "collectionGroup": "pushSubscriptions", "fieldPath": "keys", "indexes": [] },
     { "collectionGroup": "publishedLessonRevisions", "fieldPath": "activities", "indexes": [] },
     { "collectionGroup": "publishedLessonRevisions", "fieldPath": "mediaManifest", "indexes": [] },
     { "collectionGroup": "publishedLessonRevisions", "fieldPath": "sourceAttributions", "indexes": [] },

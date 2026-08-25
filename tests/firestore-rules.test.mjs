@@ -56,6 +56,7 @@ const operationalDocumentPaths = [
   `${COLLECTIONS.auditLogs}/audit-1`,
   `${COLLECTIONS.idempotencyKeys}/key-1`,
   `${COLLECTIONS.rateLimits}/bucket-1`,
+  `${COLLECTIONS.pushSubscriptions}/device-1`,
   `${COLLECTIONS.publishJobs}/job-1`,
   `${COLLECTIONS.systemConfig}/config-1`,
 ];

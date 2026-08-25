@@ -4,6 +4,7 @@ import { Gamepad2, LayoutDashboard, LibraryBig, Settings, ShieldCheck } from "lu
 
 import { Logo } from "@/components/layout/logo";
 import { LogoutButton } from "@/features/auth/components/logout-button";
+import { AppActivityTracker } from "@/features/notifications/components/app-activity-tracker";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export async function AppShell({ children }: { children: ReactNode }) {
@@ -18,6 +19,12 @@ export async function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-muted/40">
+      {user && (
+        <AppActivityTracker
+          userId={user.uid}
+          initiallyEnabled={user.studyRemindersEnabled}
+        />
+      )}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo href="/dashboard" />

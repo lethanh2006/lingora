@@ -27,6 +27,11 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
       email: profile?.email ?? decoded.email ?? "",
       displayName: profile?.displayName ?? decoded.name ?? "Lingora learner",
       role: profile?.role === "admin" ? "admin" : ("user" as UserRole),
+      studyRemindersEnabled: profile?.studyReminder?.enabled === true,
+      lastActiveAtMs:
+        typeof profile?.lastActiveAt?.toMillis === "function"
+          ? profile.lastActiveAt.toMillis()
+          : null,
     };
   } catch {
     return null;

@@ -17,6 +17,7 @@ export const COLLECTIONS = {
   publishedCourseRevisions: "publishedCourseRevisions",
   publishedLessonRevisions: "publishedLessonRevisions",
   publishJobs: "publishJobs",
+  pushSubscriptions: "pushSubscriptions",
   questions: "questions",
   questionVersions: "questionVersions",
   rateLimits: "rateLimits",

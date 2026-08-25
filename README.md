@@ -17,6 +17,7 @@ Tài liệu sản phẩm, luồng, dữ liệu và tiêu chí nghiệm thu chín
 - Import/export CSV có bước xem trước cho cả danh sách chủ đề và từ trong từng chủ đề.
 - Khi tạo từ tiếng Nhật, nhập kanji/kana/romaji để nhận gợi ý cách đọc, nghĩa, ví dụ và audio.
 - Firebase session cookie phía server và kiểm tra quyền admin ở từng endpoint.
+- PWA có thể cài lên màn hình chính và Web Push nhắc học khi người dùng không quay lại ứng dụng trong 48 giờ.
 
 ## Công nghệ
 
@@ -49,6 +50,28 @@ npm run dev
 ```
 
 Mở `http://localhost:3000`.
+
+## PWA và nhắc học
+
+Tạo một cặp VAPID duy nhất cho môi trường triển khai:
+
+```bash
+npm run push:keys
+```
+
+Đặt public key vào `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, private key vào `VAPID_PRIVATE_KEY`, và cấu hình `VAPID_SUBJECT` dạng `mailto:you@example.com`. Thêm `CRON_SECRET` ngẫu nhiên dài ít nhất 16 ký tự vào biến môi trường Vercel rồi deploy lại.
+
+`vercel.json` gọi `/api/cron/study-reminders` mỗi ngày lúc 01:00 UTC (08:00 Việt Nam), tương thích cả Vercel Hobby. Job gửi đúng một lần trong mỗi đợt người dùng không mở Lingora, ở lần chạy hằng ngày đầu tiên sau khi đã không hoạt động ít nhất 48 giờ. Lần mở ứng dụng hoặc phiên luyện được lưu tiếp theo sẽ hẹn lại mốc 48 giờ mới. Endpoint cron dùng Bearer `CRON_SECRET`, lease Firestore để tránh gửi trùng và xử lý nhiều batch trong giới hạn thời gian của Vercel.
+
+Thông báo chỉ được bật khi người dùng chủ động đồng ý tại `/settings`. Khi đăng xuất, đăng ký push trên thiết bị được gỡ để tài khoản khác dùng chung trình duyệt không nhận nhầm thông báo.
+
+Trước khi bật cron ở production, deploy cả composite index `users.studyReminder` trong `firestore.indexes.json` bằng lệnh ở mục “Deploy rules và indexes”.
+
+Web Push cần HTTPS. Khi kiểm tra local, chạy:
+
+```bash
+npm run dev -- --experimental-https
+```
 
 ## Khởi tạo nội dung từ vựng
 

@@ -1,9 +1,20 @@
 import "server-only";
 
 import type { Firestore } from "firebase-admin/firestore";
+import { deletePushSubscriptionIfOwned } from "../../notifications/push-subscription.repository.ts";
 import { COLLECTIONS, USER_SUBCOLLECTIONS } from "../../../lib/firebase/collections.ts";
 
 export function createDeletionService(firestore: Firestore) {
+  async function deletePushSubscriptions(uid: string) {
+    const subscriptions = await firestore
+      .collection(COLLECTIONS.pushSubscriptions)
+      .where("userId", "==", uid)
+      .get();
+    for (const subscription of subscriptions.docs) {
+      await deletePushSubscriptionIfOwned(firestore, subscription.ref, uid);
+    }
+  }
+
   return {
     async deleteUserData(uid: string): Promise<void> {
       if (!uid || uid.length > 128 || uid.includes("/")) {
@@ -46,8 +57,15 @@ export function createDeletionService(firestore: Firestore) {
         }
       }
 
-      // 3. Delete user document
+      // 3. Delete every browser push endpoint owned by this account.
+      await deletePushSubscriptions(uid);
+
+      // 4. Delete user document
       await firestore.collection(COLLECTIONS.users).doc(uid).delete();
+
+      // 5. Sweep again after deleting the profile so a concurrent subscribe
+      // transaction cannot leave an orphaned endpoint between steps 3 and 4.
+      await deletePushSubscriptions(uid);
     },
   };
 }

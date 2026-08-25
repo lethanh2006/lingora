@@ -3,8 +3,9 @@ import test from "node:test";
 
 import { createDeletionService } from "../src/features/user/services/deletion-service.ts";
 
-function createMockFirestore() {
+function createMockFirestore(hooks = {}) {
   const store = new Map(); // path -> data
+  let filteredQueryCount = 0;
 
   function getDocsForCollection(collectionPath) {
     const docs = [];
@@ -53,20 +54,52 @@ function createMockFirestore() {
   }
 
   function makeCollectionRef(collectionPath) {
-    return {
+    const collectionRef = {
       path: collectionPath,
       doc(docId) {
         return makeDocRef(`${collectionPath}/${docId}`, docId);
+      },
+      where(field, operator, expected) {
+        assert.equal(operator, "==");
+        return {
+          async get() {
+            const snapshot = getDocsForCollection(collectionPath);
+            const result = {
+              ...snapshot,
+              docs: snapshot.docs.filter((document) => document.data()?.[field] === expected),
+            };
+            filteredQueryCount += 1;
+            hooks.afterFilteredQuery?.({
+              collectionPath,
+              field,
+              expected,
+              queryCount: filteredQueryCount,
+              store,
+            });
+            return result;
+          },
+        };
       },
       async get() {
         return getDocsForCollection(collectionPath);
       },
     };
+    return collectionRef;
   }
 
   return {
     collection(name) {
       return makeCollectionRef(name);
+    },
+    async runTransaction(callback) {
+      return callback({
+        get(ref) {
+          return ref.get();
+        },
+        delete(ref) {
+          store.delete(ref.path);
+        },
+      });
     },
   };
 }
@@ -102,6 +135,10 @@ test("deletion service deletes user document and all subcollections recursively 
   const practiceDaysColl = userDocRef.collection("practiceDays");
   await practiceDaysColl.doc("2026-08-20").set({ sessionsCompleted: 1 });
 
+  const pushSubscriptionsColl = firestore.collection("pushSubscriptions");
+  await pushSubscriptionsColl.doc("device-1").set({ userId: testUid, endpoint: "https://push.example/1" });
+  await pushSubscriptionsColl.doc("other-device").set({ userId: "someone-else", endpoint: "https://push.example/2" });
+
   // Attempts and nested sections
   const attemptsColl = userDocRef.collection("attempts");
   const attemptDocRef = attemptsColl.doc("attempt-1");
@@ -118,6 +155,7 @@ test("deletion service deletes user document and all subcollections recursively 
   assert.equal((await statsColl.get()).size, 1);
   assert.equal((await topicProgressColl.get()).size, 1);
   assert.equal((await practiceDaysColl.get()).size, 1);
+  assert.equal((await pushSubscriptionsColl.get()).size, 2);
   assert.equal((await attemptsColl.get()).size, 1);
   assert.equal((await sectionsColl.get()).size, 1);
 
@@ -132,6 +170,29 @@ test("deletion service deletes user document and all subcollections recursively 
   assert.equal((await statsColl.get()).empty, true);
   assert.equal((await topicProgressColl.get()).empty, true);
   assert.equal((await practiceDaysColl.get()).empty, true);
+  const remainingSubscriptions = await pushSubscriptionsColl.get();
+  assert.equal(remainingSubscriptions.size, 1);
+  assert.equal(remainingSubscriptions.docs[0].data().userId, "someone-else");
   assert.equal((await attemptsColl.get()).empty, true);
   assert.equal((await sectionsColl.get()).empty, true);
+});
+
+test("deletion service catches a push subscription created between its two sweeps", async () => {
+  const uid = "concurrent-delete-learner";
+  const firestore = createMockFirestore({
+    afterFilteredQuery({ collectionPath, expected, queryCount, store }) {
+      if (collectionPath === "pushSubscriptions" && expected === uid && queryCount === 1) {
+        store.set("pushSubscriptions/racing-device", {
+          userId: uid,
+          endpoint: "https://push.example/racing",
+        });
+      }
+    },
+  });
+  await firestore.collection("users").doc(uid).set({ role: "user" });
+
+  await createDeletionService(firestore).deleteUserData(uid);
+
+  assert.equal((await firestore.collection("users").doc(uid).get()).exists, false);
+  assert.equal((await firestore.collection("pushSubscriptions").get()).empty, true);
 });

@@ -3,6 +3,7 @@ import "server-only";
 import { Timestamp, type Firestore } from "firebase-admin/firestore";
 
 import { COLLECTIONS, USER_SUBCOLLECTIONS } from "../../lib/firebase/collections.ts";
+import { getStudyReminderUpdate } from "../notifications/push-subscription.repository.ts";
 import {
   topicProgressSchema,
   type PracticeSessionInput,
@@ -72,12 +73,14 @@ export function createVocabularyProgressService(db: Firestore) {
         .doc(userId)
         .collection(USER_SUBCOLLECTIONS.practiceDays)
         .doc(getVietnamDateId());
+      const userRef = db.collection(COLLECTIONS.users).doc(userId);
       const now = Timestamp.now();
 
       const progress = await db.runTransaction(async (transaction) => {
-        const [progressSnapshot, practiceDaySnapshot] = await Promise.all([
+        const [progressSnapshot, practiceDaySnapshot, userSnapshot] = await Promise.all([
           transaction.get(progressRef),
           transaction.get(practiceDayRef),
+          transaction.get(userRef),
         ]);
 
         const existing = progressSnapshot.exists
@@ -117,6 +120,13 @@ export function createVocabularyProgressService(db: Firestore) {
           updatedAt: now,
         });
         transaction.set(progressRef, nextProgress);
+        if (userSnapshot.exists) {
+          transaction.set(
+            userRef,
+            getStudyReminderUpdate(userSnapshot.data(), now),
+            { merge: true },
+          );
+        }
 
         return nextProgress;
       });

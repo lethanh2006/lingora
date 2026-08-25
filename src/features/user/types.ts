@@ -5,4 +5,6 @@ export type UserProfile = {
   email: string;
   displayName: string;
   role: UserRole;
+  studyRemindersEnabled: boolean;
+  lastActiveAtMs: number | null;
 };
