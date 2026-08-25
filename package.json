@@ -38,6 +38,11 @@
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
+  "overrides": {
+    "jwks-rsa": {
+      "jose": "4.15.9"
+    }
+  },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
     "@tailwindcss/postcss": "^4",
