@@ -28,7 +28,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-primary">Quản trị nội dung</p>
@@ -43,9 +43,9 @@ export default async function AdminPage() {
         </Link>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3">
         {stats.map(({ label, value, icon: Icon }) => (
-          <Card key={label}>
+          <Card key={label} className="min-w-0">
             <CardContent className="flex items-center gap-4 p-5">
               <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
                 <Icon className="size-5" />
@@ -59,9 +59,9 @@ export default async function AdminPage() {
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1.4fr_0.6fr]">
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
+      <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
+        <Card className="min-w-0">
+          <CardHeader className="flex-col items-start gap-2 space-y-0 min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between">
             <CardTitle className="text-lg">Chủ đề gần đây</CardTitle>
             <Link href="/admin/topics" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
               Quản lý tất cả <ArrowRight className="size-4" />
@@ -96,7 +96,7 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="min-w-0 border-primary/20 bg-primary/5">
           <CardHeader>
             <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground">
               <Eye className="size-5" />

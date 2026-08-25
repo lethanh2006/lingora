@@ -13,10 +13,10 @@ const adminNavigation = [
 
 export default function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <div className="min-h-screen bg-muted/40">
+    <div className="min-h-screen min-w-0 overflow-x-clip bg-muted/40">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex h-16 min-w-0 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <Logo href="/admin" />
             <span className="hidden items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary sm:inline-flex">
               <ShieldCheck className="size-3.5" />
@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl md:grid-cols-[230px_1fr]">
+      <div className="mx-auto grid w-full min-w-0 max-w-7xl grid-cols-1 md:grid-cols-[230px_minmax(0,1fr)]">
         <aside className="hidden min-h-[calc(100vh-4rem)] border-r border-border bg-background/70 px-3 py-6 md:block">
           <p className="mb-3 px-3 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
             Nội dung ứng dụng
@@ -58,8 +58,8 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
           </div>
         </aside>
 
-        <div className="min-w-0">
-          <nav className="flex gap-1 overflow-x-auto border-b bg-background px-4 py-3 md:hidden" aria-label="Điều hướng quản trị di động">
+        <div className="w-full min-w-0 max-w-full">
+          <nav className="flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b bg-background px-4 py-3 md:hidden" aria-label="Điều hướng quản trị di động">
             {adminNavigation.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
@@ -71,7 +71,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
               </Link>
             ))}
           </nav>
-          <main className="px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+          <main className="w-full min-w-0 max-w-full px-4 py-8 sm:px-6 lg:px-8">{children}</main>
         </div>
       </div>
     </div>
