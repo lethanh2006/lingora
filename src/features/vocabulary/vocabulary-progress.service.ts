@@ -2,7 +2,10 @@ import "server-only";
 
 import { Timestamp, type Firestore } from "firebase-admin/firestore";
 
-import { COLLECTIONS, USER_SUBCOLLECTIONS } from "../../lib/firebase/collections.ts";
+import {
+  COLLECTIONS,
+  USER_SUBCOLLECTIONS,
+} from "../../lib/firebase/collections.ts";
 import { getStudyReminderUpdate } from "../notifications/push-subscription.repository.ts";
 import {
   topicProgressSchema,
@@ -26,7 +29,10 @@ export function toTopicProgressDto(progress: TopicProgress): TopicProgressDto {
   const dto = { ...progress } as Partial<TopicProgress>;
   delete dto.firstPracticedAt;
   delete dto.lastPracticedAt;
-  return dto as TopicProgressDto;
+  const lastPracticedAtMs =
+    progress.lastPracticedAt.seconds * 1_000 +
+    Math.floor(progress.lastPracticedAt.nanoseconds / 1_000_000);
+  return { ...dto, lastPracticedAtMs } as TopicProgressDto;
 }
 
 export function createVocabularyProgressService(db: Firestore) {
@@ -42,13 +48,18 @@ export function createVocabularyProgressService(db: Firestore) {
       return snapshot.docs.map((document) => {
         const progress = topicProgressSchema.parse(document.data());
         if (progress.topicId !== document.id) {
-          throw new Error(`Document ${document.ref.path} có topicId không khớp path`);
+          throw new Error(
+            `Document ${document.ref.path} có topicId không khớp path`,
+          );
         }
         return toTopicProgressDto(progress);
       });
     },
 
-    async listActivePracticeDateIds(userId: string, maxDays = 90): Promise<string[]> {
+    async listActivePracticeDateIds(
+      userId: string,
+      maxDays = 90,
+    ): Promise<string[]> {
       const snapshot = await db
         .collection(COLLECTIONS.users)
         .doc(userId)
@@ -58,11 +69,16 @@ export function createVocabularyProgressService(db: Firestore) {
         .get();
 
       return snapshot.docs
-        .filter((document) => Number(document.data().sessionsCompleted ?? 0) > 0)
+        .filter(
+          (document) => Number(document.data().sessionsCompleted ?? 0) > 0,
+        )
         .map((document) => document.id);
     },
 
-    async recordSession(userId: string, input: PracticeSessionInput): Promise<TopicProgressDto> {
+    async recordSession(
+      userId: string,
+      input: PracticeSessionInput,
+    ): Promise<TopicProgressDto> {
       const progressRef = db
         .collection(COLLECTIONS.users)
         .doc(userId)
@@ -77,11 +93,12 @@ export function createVocabularyProgressService(db: Firestore) {
       const now = Timestamp.now();
 
       const progress = await db.runTransaction(async (transaction) => {
-        const [progressSnapshot, practiceDaySnapshot, userSnapshot] = await Promise.all([
-          transaction.get(progressRef),
-          transaction.get(practiceDayRef),
-          transaction.get(userRef),
-        ]);
+        const [progressSnapshot, practiceDaySnapshot, userSnapshot] =
+          await Promise.all([
+            transaction.get(progressRef),
+            transaction.get(practiceDayRef),
+            transaction.get(userRef),
+          ]);
 
         const existing = progressSnapshot.exists
           ? topicProgressSchema.parse(progressSnapshot.data())
@@ -90,21 +107,28 @@ export function createVocabularyProgressService(db: Firestore) {
         practicedModes.add(input.mode);
         const masteredWordIds = new Set(existing?.masteredWordIds ?? []);
         input.masteredWordIds.forEach((wordId) => masteredWordIds.add(wordId));
-        const score = Math.round((input.correctAnswers / input.totalAnswers) * 100);
+        const score = Math.round(
+          (input.correctAnswers / input.totalAnswers) * 100,
+        );
 
         const nextProgress = topicProgressSchema.parse({
           schemaVersion: 1,
           topicId: input.topicId,
           practicedModes: [...practicedModes],
           sessionsCompleted: (existing?.sessionsCompleted ?? 0) + 1,
-          correctAnswers: (existing?.correctAnswers ?? 0) + input.correctAnswers,
+          correctAnswers:
+            (existing?.correctAnswers ?? 0) + input.correctAnswers,
           totalAnswers: (existing?.totalAnswers ?? 0) + input.totalAnswers,
           masteredWordIds: [...masteredWordIds],
           bestScores: {
             ...(existing?.bestScores ?? EMPTY_BEST_SCORES),
-            [input.mode]: Math.max(existing?.bestScores[input.mode] ?? 0, score),
+            [input.mode]: Math.max(
+              existing?.bestScores[input.mode] ?? 0,
+              score,
+            ),
           },
-          totalStudySeconds: (existing?.totalStudySeconds ?? 0) + input.durationSeconds,
+          totalStudySeconds:
+            (existing?.totalStudySeconds ?? 0) + input.durationSeconds,
           firstPracticedAt: existing?.firstPracticedAt ?? now,
           lastPracticedAt: now,
         });
@@ -114,9 +138,12 @@ export function createVocabularyProgressService(db: Firestore) {
           schemaVersion: 1,
           date: getVietnamDateId(),
           sessionsCompleted: Number(practiceDay?.sessionsCompleted ?? 0) + 1,
-          studySeconds: Number(practiceDay?.studySeconds ?? 0) + input.durationSeconds,
-          correctAnswers: Number(practiceDay?.correctAnswers ?? 0) + input.correctAnswers,
-          totalAnswers: Number(practiceDay?.totalAnswers ?? 0) + input.totalAnswers,
+          studySeconds:
+            Number(practiceDay?.studySeconds ?? 0) + input.durationSeconds,
+          correctAnswers:
+            Number(practiceDay?.correctAnswers ?? 0) + input.correctAnswers,
+          totalAnswers:
+            Number(practiceDay?.totalAnswers ?? 0) + input.totalAnswers,
           updatedAt: now,
         });
         transaction.set(progressRef, nextProgress);
@@ -136,4 +163,6 @@ export function createVocabularyProgressService(db: Firestore) {
   };
 }
 
-export type VocabularyProgressService = ReturnType<typeof createVocabularyProgressService>;
+export type VocabularyProgressService = ReturnType<
+  typeof createVocabularyProgressService
+>;

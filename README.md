@@ -7,11 +7,19 @@ Tài liệu sản phẩm, luồng, dữ liệu và tiêu chí nghiệm thu chín
 ## Tính năng chính
 
 - Đăng ký/đăng nhập bằng email, mật khẩu hoặc Google.
-- Dashboard chỉ hiển thị tiến độ thật của từng tài khoản.
+- Dashboard hiển thị tiến độ thật, thời gian học, lịch hoạt động từ thứ Hai đến Chủ nhật và mục tiêu một phiên mỗi ngày.
+- Nút học tiếp ưu tiên chủ đề chưa ghi nhớ hết được luyện gần nhất.
+- Tìm chủ đề bằng tiếng Việt có hoặc không dấu; lọc ngôn ngữ, tiến độ, chủ đề đã lưu và sắp xếp tên/số từ.
+- Chủ đề yêu thích lưu riêng theo UID trong trình duyệt hiện tại; chưa đồng bộ giữa các thiết bị.
+- Danh sách từ có tìm kiếm, lọc từ chưa ghi nhớ, ẩn nghĩa và mở nghĩa từng từ để tự kiểm tra.
 - Danh sách từ vựng theo chủ đề cho tiếng Anh, Nhật và Trung.
 - Bộ từ cốt lõi theo 18 cấp CEFR, JLPT tham chiếu và HSK hiện hành.
 - Phát file audio đã lưu; tự chuyển sang Web Speech API khi URL thiếu hoặc lỗi.
 - Ghép từ với nghĩa và điền từ theo nghĩa tiếng Việt.
+- Lượt luyện ưu tiên từ chưa ghi nhớ; lượt mới luân chuyển bộ từ để tiếp cận cả chủ đề dài.
+- Sau phiên học có thể ôn riêng các từ chưa nhớ và thử lưu lại kết quả nếu mạng lỗi.
+- Lật thẻ bằng Space, đánh giá bằng phím ←/→; trò điền từ hỗ trợ Enter xuyên suốt phiên.
+- Giao diện thích ứng màn hình, điều hướng dưới cùng trên điện thoại, trạng thái mục đang xem và hỗ trợ giảm chuyển động.
 - Tiến độ riêng theo UID: số phiên, từ đã ghi nhớ, điểm tốt nhất và chuỗi ngày luyện.
 - Admin CRUD chủ đề/từ vựng; bật hoặc ẩn nội dung mà không qua workflow xuất bản.
 - Import/export CSV có bước xem trước cho cả danh sách chủ đề và từ trong từng chủ đề.

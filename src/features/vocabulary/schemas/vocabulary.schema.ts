@@ -72,7 +72,11 @@ export const vocabularyTopicInputSchema = z
 export const vocabularyWordInputSchema = z
   .object({
     term: z.string().trim().min(1, "Từ vựng không được để trống").max(120),
-    meaning: z.string().trim().min(1, "Nghĩa tiếng Việt không được để trống").max(240),
+    meaning: z
+      .string()
+      .trim()
+      .min(1, "Nghĩa tiếng Việt không được để trống")
+      .max(240),
     pronunciation: z.string().trim().max(160).default(""),
     example: z.string().trim().max(500).default(""),
     exampleMeaning: z.string().trim().max(500).default(""),
@@ -153,6 +157,12 @@ export type PracticeMode = z.infer<typeof practiceModeSchema>;
 export type TopicProgress = z.infer<typeof topicProgressSchema>;
 export type PracticeSessionInput = z.infer<typeof practiceSessionInputSchema>;
 
-export type VocabularyTopicDto = Omit<VocabularyTopic, "createdAt" | "updatedAt">;
+export type VocabularyTopicDto = Omit<
+  VocabularyTopic,
+  "createdAt" | "updatedAt"
+>;
 export type VocabularyWordDto = Omit<VocabularyWord, "createdAt" | "updatedAt">;
-export type TopicProgressDto = Omit<TopicProgress, "firstPracticedAt" | "lastPracticedAt">;
+export type TopicProgressDto = Omit<
+  TopicProgress,
+  "firstPracticedAt" | "lastPracticedAt"
+> & { lastPracticedAtMs?: number };

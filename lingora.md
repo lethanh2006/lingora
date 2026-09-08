@@ -1,6 +1,6 @@
 # Lingora — Tài liệu sản phẩm và kỹ thuật
 
-Phiên bản tài liệu: 2.1
+Phiên bản tài liệu: 2.2
 Trạng thái: nguồn sự thật hiện hành
 Phạm vi: ứng dụng học từ vựng theo chủ đề
 
@@ -101,9 +101,11 @@ Dashboard hiển thị:
 
 - Chuỗi ngày luyện thật từ `practiceDays`.
 - Tổng số word ID đã ghi nhớ từ `topicProgress`.
-- Tổng số phiên đã luyện.
-- Danh sách chủ đề đang hiển thị.
-- Tiến độ từng chủ đề: số từ ghi nhớ và số loại trò đã luyện.
+- Tổng số phiên đã luyện và tổng thời gian học tính bằng phút.
+- Lịch học tuần hiện tại từ thứ Hai đến Chủ nhật, theo ngày Việt Nam.
+- Mục tiêu một phiên trong ngày, hoàn thành khi có dữ liệu `practiceDays` thật.
+- Nút học tiếp ưu tiên chủ đề chưa ghi nhớ hết được luyện gần nhất, bỏ qua chủ đề ẩn hoặc chưa có từ.
+- Danh sách chủ đề đang hiển thị và tiến độ ghi nhớ từng chủ đề.
 
 Dashboard không hiển thị “hoàn thành khóa học” hoặc “bài đã hoàn thành”.
 
@@ -117,8 +119,12 @@ Mỗi card hiển thị:
 - Tên và mô tả.
 - Ngôn ngữ.
 - Số từ đang hiển thị.
-- Số trò đã luyện.
-- Số từ đã ghi nhớ.
+- Thời gian ước tính mỗi phiên và số từ đã ghi nhớ.
+- Nút lưu hoặc bỏ lưu chủ đề.
+
+Người học có thể tìm kiếm có/không dấu, lọc ngôn ngữ và tiến độ (đang học, chưa học, đã ghi nhớ, đã lưu), sắp xếp theo thứ tự đề xuất, tên hoặc số từ. Trạng thái không có kết quả có nút xóa bộ lọc.
+
+Chủ đề đã lưu dùng khóa `lingora:saved-topics:{uid}` trong localStorage, riêng từng tài khoản và trình duyệt; không phải dữ liệu đồng bộ Firestore. Lỗi lưu trữ được thông báo và không chặn việc học.
 
 ### Chi tiết chủ đề
 
@@ -126,7 +132,19 @@ Mỗi card hiển thị:
 
 - Ba lựa chọn trò chơi.
 - Danh sách từ xem trước.
-- Phiên âm, nghĩa, ví dụ và nút phát âm nếu có.
+- Phiên âm, nghĩa, ví dụ, bản dịch ví dụ và nút phát âm nếu có.
+- Tìm từ theo từ gốc, phiên âm hoặc nghĩa; lọc các từ chưa ghi nhớ.
+- Ẩn toàn bộ nghĩa và mở từng nghĩa để tự kiểm tra.
+- Điểm tốt nhất của từng trò đã luyện.
+
+### Tiện ích trong phiên luyện
+
+- Mỗi lượt ưu tiên từ chưa ghi nhớ; các lượt tiếp theo luân chuyển danh sách trước khi xáo trộn để không bỏ sót phần cuối chủ đề dài.
+- Lật thẻ hỗ trợ Space để lật, ← để đánh dấu chưa nhớ, → để đánh dấu đã nhớ.
+- Trò điền từ chuyển tiêu điểm giữa ô đáp án và nút tiếp theo để có thể học bằng Enter.
+- Trang kết quả liệt kê các từ chưa nhớ và cho phép luyện lại riêng tập từ đó.
+- Mỗi lượt vẫn lưu qua `/api/practice`; nếu lỗi mạng, người học có thể thử lại cùng kết quả. Sau khi lưu, giao diện làm mới dữ liệu tiến độ.
+- Các thống kê trong Dashboard luôn đến từ dữ liệu đã lưu, không từ localStorage.
 
 Topic bị ẩn hoặc không tồn tại trả trang 404. Word bị ẩn không xuất hiện trong danh sách và không được API tiến độ chấp nhận.
 

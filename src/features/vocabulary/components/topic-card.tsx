@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Gamepad2, WholeWord } from "lucide-react";
-
+import { ArrowUpRight, Bookmark, Check, Clock3 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type {
   TopicProgressDto,
@@ -8,49 +7,115 @@ import type {
 } from "@/features/vocabulary/schemas/vocabulary.schema";
 import { getVocabularyLanguageCopy } from "@/features/vocabulary/vocabulary-language";
 
-const accentClasses = {
-  emerald: "from-emerald-500/15 to-emerald-500/5 border-emerald-500/20",
-  blue: "from-blue-500/15 to-blue-500/5 border-blue-500/20",
-  violet: "from-violet-500/15 to-violet-500/5 border-violet-500/20",
-  amber: "from-amber-500/15 to-amber-500/5 border-amber-500/20",
-  rose: "from-rose-500/15 to-rose-500/5 border-rose-500/20",
-  cyan: "from-cyan-500/15 to-cyan-500/5 border-cyan-500/20",
-} as const;
+const accents = {
+  emerald: "bg-[#e8f2e4] text-[#467447]",
+  blue: "bg-[#e7eef9] text-[#416da8]",
+  violet: "bg-[#eeebf9] text-[#8060a9]",
+  amber: "bg-[#fcf0d8] text-[#9b772e]",
+  rose: "bg-[#f8e9e9] text-[#b76a72]",
+  cyan: "bg-[#e4f2f2] text-[#407f88]",
+};
 
 export function TopicCard({
   topic,
   progress,
+  saved,
+  onToggleSaved,
 }: {
   topic: VocabularyTopicDto;
   progress?: TopicProgressDto;
+  saved?: boolean;
+  onToggleSaved?: () => void;
 }) {
-  const masteredCount = Math.min(progress?.masteredWordIds.length ?? 0, topic.wordCount);
-  const percent = topic.wordCount > 0 ? Math.round((masteredCount / topic.wordCount) * 100) : 0;
-  const languageCopy = getVocabularyLanguageCopy(topic.languageCode);
-
+  const masteredCount = Math.min(
+    progress?.masteredWordIds.length ?? 0,
+    topic.wordCount,
+  );
+  const percent =
+    topic.wordCount > 0
+      ? Math.round((masteredCount / topic.wordCount) * 100)
+      : 0;
+  const started = (progress?.sessionsCompleted ?? 0) > 0;
   return (
-    <Link href={`/learn/${topic.id}`} className="group block h-full w-full min-w-0 max-w-full">
-      <Card className={`h-full min-w-0 max-w-full overflow-hidden bg-gradient-to-br transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${accentClasses[topic.accent]}`}>
-        <CardContent className="flex h-full min-w-0 flex-col p-4 sm:p-5">
-          <div className="flex min-w-0 items-start justify-between gap-3">
-            <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-background/85 text-3xl shadow-sm" aria-hidden="true">{topic.icon}</span>
-            <span className="min-w-0 max-w-[60%] truncate rounded-full bg-background/80 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{languageCopy.name}</span>
-          </div>
-          <h2 className="mt-5 break-words text-xl font-bold tracking-tight">{topic.title}</h2>
-          <p className="mt-2 line-clamp-2 min-w-0 flex-1 break-words text-sm leading-6 text-muted-foreground">{topic.description}</p>
-          <div className="mt-5 flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs font-semibold text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5"><WholeWord className="size-4 shrink-0" /> {topic.wordCount} từ</span>
-            <span className="inline-flex items-center gap-1.5"><Gamepad2 className="size-4 shrink-0" /> {progress?.practicedModes.length ?? 0}/3 trò đã luyện</span>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-background/80">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${percent}%` }} />
-          </div>
-          <div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="text-muted-foreground">Đã thuộc {masteredCount}/{topic.wordCount}</span>
-            <span className="flex items-center gap-1 font-bold text-primary">{progress ? "Học tiếp" : "Bắt đầu"} <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+    <Card className="group relative flex h-full min-w-0 flex-col overflow-hidden transition duration-200 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_8px_28px_#243b3209]">
+      <div
+        className={`relative m-2 mb-0 flex h-28 items-center justify-between overflow-hidden rounded-xl px-5 ${accents[topic.accent]}`}
+      >
+        <span
+          className="relative z-10 text-5xl transition-transform duration-300 group-hover:scale-110"
+          aria-hidden="true"
+        >
+          {topic.icon}
+        </span>
+        <div className="dot-pattern absolute inset-y-0 right-0 w-1/2 opacity-15" />
+        <span className="absolute -right-3 -bottom-5 size-28 rounded-full border-[18px] border-current opacity-[0.06]" />
+        <span className="relative mr-7 rounded-full bg-white/75 px-2.5 py-1 text-[10px] font-bold">
+          {getVocabularyLanguageCopy(topic.languageCode).name}
+        </span>
+      </div>
+      {onToggleSaved && (
+        <button
+          type="button"
+          onClick={onToggleSaved}
+          aria-label={`${saved ? "Bỏ lưu" : "Lưu"} chủ đề ${topic.title}`}
+          aria-pressed={saved}
+          className={`absolute top-5 right-5 z-20 grid size-8 place-items-center rounded-full bg-white/85 transition hover:bg-white ${saved ? "text-primary" : "text-muted-foreground"}`}
+        >
+          <Bookmark className="size-4" fill={saved ? "currentColor" : "none"} />
+        </button>
+      )}
+      <CardContent className="flex flex-1 flex-col p-5">
+        <div className="mb-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+          <span>{topic.wordCount} từ vựng</span>
+          <span aria-hidden="true">·</span>
+          <span className="inline-flex items-center gap-1">
+            <Clock3 className="size-3" />{" "}
+            {Math.max(1, Math.ceil(Math.min(topic.wordCount, 20) / 4))} phút /
+            phiên
+          </span>
+        </div>
+        <h2 className="text-lg font-bold tracking-tight">
+          <Link
+            href={`/learn/${topic.id}`}
+            className="after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-primary"
+          >
+            {topic.title}
+          </Link>
+        </h2>
+        <p className="mt-2 line-clamp-2 flex-1 text-[13px] leading-6 text-muted-foreground">
+          {topic.description}
+        </p>
+        <div
+          className="mt-5 h-1.5 overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-label={`Tiến độ ${topic.title}`}
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="h-full rounded-full bg-primary/75"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-2 text-[11px]">
+          <span className="text-muted-foreground">
+            {percent === 100 ? (
+              <span className="inline-flex items-center gap-1 text-primary">
+                <Check className="size-3.5" /> Đã ghi nhớ tất cả
+              </span>
+            ) : started ? (
+              `Đã nhớ ${masteredCount}/${topic.wordCount} từ`
+            ) : (
+              "Chờ bạn khám phá"
+            )}
+          </span>
+          <span className="inline-flex items-center gap-1 font-bold text-primary">
+            {started ? "Học tiếp" : "Bắt đầu"}
+            <ArrowUpRight className="size-3.5" />
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -23,15 +23,23 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
       { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        type: "image/png",
+        sizes: "180x180",
+      },
+    ],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#118568",
+  themeColor: "#247858",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" className="h-full antialiased">
       <body className="min-h-full">
